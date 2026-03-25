@@ -1,6 +1,6 @@
 :root{
-  /* Tema claro (azul visible, no oscuro) */
-  --bg: #f5f9ff;
+  /* Fondo un poco más azul (pero claro) */
+  --bg: #eaf2ff;
   --card: rgba(255,255,255,.94);
   --text: rgba(17, 26, 44, .92);
   --muted: rgba(17, 26, 44, .60);
@@ -11,8 +11,8 @@
   --grid2: rgba(17, 26, 44, .12);
 
   /* Acentos (azul/celeste) */
-  --accent: #2f80ff;   /* azul vivo pero legible */
-  --accent2: #22c3ee;  /* celeste/cyan */
+  --accent: #2f80ff;
+  --accent2: #22c3ee;
   --danger: #e11d48;
 }
 
@@ -22,8 +22,8 @@ body{
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
   color: var(--text);
   background:
-    radial-gradient(1100px 620px at 10% 8%, rgba(47,128,255,.14), transparent 60%),
-    radial-gradient(900px 520px at 90% 20%, rgba(34,195,238,.12), transparent 55%),
+    radial-gradient(1100px 620px at 10% 8%, rgba(47,128,255,.20), transparent 60%),
+    radial-gradient(900px 520px at 90% 20%, rgba(34,195,238,.16), transparent 55%),
     linear-gradient(180deg, #ffffff 0%, var(--bg) 45%, #ffffff 100%);
   min-height: 100vh;
   padding: 16px 12px 26px;
@@ -264,4 +264,48 @@ canvas{width:100% !important; height: 180px !important;}
 }
 @media (max-width: 980px){
   .two-col{ grid-template-columns: 1fr; }
+}
+
+/* === Modal para ampliar gráfico === */
+.modal{
+  position:fixed;
+  inset:0;
+  background: rgba(10, 20, 40, .45);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding: 18px;
+  z-index: 9999;
+}
+.modal.show{ display:flex; }
+.modal-card{
+  width: min(960px, 96vw);
+  background: rgba(255,255,255,.97);
+  border:1px solid rgba(17, 26, 44, .16);
+  border-radius: 16px;
+  box-shadow: 0 25px 70px rgba(0,0,0,.25);
+  overflow:hidden;
+}
+.modal-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(17, 26, 44, .10);
+  background: linear-gradient(180deg, rgba(255,255,255,.95), rgba(255,255,255,.80));
+}
+.modal-title{
+  font-weight: 900;
+  font-size: 12.5px;
+  color: rgba(17,26,44,.85);
+}
+.modal-body{ padding: 12px; }
+.modal-body canvas{ height: 420px !important; } /* más grande */
+.clickable{
+  cursor: zoom-in;
+}
+.small-note{
+  color: rgba(17,26,44,.55);
+  font-size: 11px;
 }

@@ -20,9 +20,12 @@ const kpiTotalDays = document.getElementById("kpiTotalDays");
 const kpiLongest = document.getElementById("kpiLongest");
 const kpiLongestSub = document.getElementById("kpiLongestSub");
 
+const elModal = document.getElementById("chartModal");
+const btnCloseModal = document.getElementById("btnCloseModal");
+
 let fpInstances = [];
-let chartHours = null;
 let chartDays = null;
+let chartDaysBig = null;
 
 function pad2(n){ return String(n).padStart(2, "0"); }
 function fmtDate(d){ return d ? `${pad2(d.getDate())}/${pad2(d.getMonth()+1)}/${d.getFullYear()}` : "—"; }
@@ -97,15 +100,14 @@ function resetUI(){
     if(e) e.value = "";
   });
 
-  fpInstances.forEach(fp => {
-    try { fp.clear(); } catch(_) {}
-  });
+  fpInstances.forEach(fp => { try { fp.clear(); } catch(_) {} });
 
   elGantt.innerHTML = "";
 
-  if(chartHours) chartHours.destroy();
   if(chartDays) chartDays.destroy();
-  chartHours = null; chartDays = null;
+  if(chartDaysBig) chartDaysBig.destroy();
+  chartDays = null;
+  chartDaysBig = null;
 
   kpiHours.textContent = "—";
   kpiRange.textContent = "—";
@@ -389,28 +391,13 @@ function updateKPIsAndCharts(tasks, rangeInfo){
   kpiLongestSub.textContent = longest ? longest.name : "—";
 
   const labels = TASKS.map(t => t.name);
-  const hoursData = TASKS.map(t => (tasks.find(x=>x.id===t.id)?.hours ?? 0));
   const daysData  = TASKS.map(t => {
     const f = tasks.find(x=>x.id===t.id);
     return (f && f.start && f.end) ? businessDaysInclusive(f.start,f.end) : 0;
   });
 
-  if(chartHours) chartHours.destroy();
+  // Doughnut pequeño (panel)
   if(chartDays) chartDays.destroy();
-
-  chartHours = new Chart(document.getElementById("chartHours"), {
-    type: "bar",
-    data: { labels, datasets: [{ label: "Horas", data: hoursData, borderWidth: 1 }] },
-    options: {
-      responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:(ctx)=>` ${ctx.raw} h` } } },
-      scales:{
-        x:{ ticks:{ color:"rgba(17,26,44,.72)", font:{size:10} }, grid:{ color:"rgba(17,26,44,.08)" } },
-        y:{ beginAtZero:true, ticks:{ color:"rgba(17,26,44,.72)", font:{size:10} }, grid:{ color:"rgba(17,26,44,.08)" } }
-      }
-    }
-  });
-
   chartDays = new Chart(document.getElementById("chartDays"), {
     type: "doughnut",
     data: { labels, datasets: [{ label: "Días (L–V)", data: daysData, borderWidth: 1 }] },
@@ -418,6 +405,20 @@ function updateKPIsAndCharts(tasks, rangeInfo){
       responsive:true, maintainAspectRatio:false,
       plugins:{
         legend:{ position:"bottom", labels:{ color:"rgba(17,26,44,.72)", boxWidth:12, font:{size:10} } },
+        tooltip:{ callbacks:{ label:(ctx)=>` ${ctx.label}: ${ctx.raw} día(s)` } }
+      }
+    }
+  });
+
+  // Doughnut grande (modal)
+  if(chartDaysBig) chartDaysBig.destroy();
+  chartDaysBig = new Chart(document.getElementById("chartDaysBig"), {
+    type: "doughnut",
+    data: { labels, datasets: [{ label: "Días (L–V)", data: daysData, borderWidth: 1 }] },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{ position:"right", labels:{ color:"rgba(17,26,44,.78)", boxWidth:14, font:{size:12} } },
         tooltip:{ callbacks:{ label:(ctx)=>` ${ctx.label}: ${ctx.raw} día(s)` } }
       }
     }
@@ -509,31 +510,40 @@ function slugifyFilename(input, maxLen = 70){
   return out || "sin_descripcion";
 }
 
-function buildEmailBody(desc, tasks, rangeInfo){
+/* Mail: formato pedido (sin horas/recursos). "Negrita" en texto plano: **...** */
+function buildEmailBodyWanted(desc, tasks, rangeInfo){
   const lines = [];
-  lines.push("Detalle Gantt - Solicitud de Cambio");
-  lines.push("");
-  lines.push("Descripción:");
+
+  lines.push("**Descripción:**");
   lines.push(desc);
   lines.push("");
-  lines.push(`Horas por día (por recurso): ${getHoursPerDay()}`);
-  lines.push(`Rango: ${fmtDate(rangeInfo.min)} -> ${fmtDate(rangeInfo.max)}`);
-  lines.push(`Duración total (L-V): ${rangeInfo.totalBizDays} día(s)`);
-  lines.push("");
-  lines.push("Fases:");
+
+  lines.push("**Fecha de Inicio y Fin:** " + `${fmtDate(rangeInfo.min)} -> ${fmtDate(rangeInfo.max)}`);
+  lines.push("**Duración total (L-V):** " + `${rangeInfo.totalBizDays} día(s)`);
+  lines.push("**Fases:**");
+
   for(const t of tasks){
     if(!t.start || !t.end) continue;
     const dBiz = businessDaysInclusive(t.start, t.end);
-    lines.push(`- ${t.name}: ${fmtDate(t.start)} -> ${fmtDate(t.end)} (${dBiz} día(s)) | Horas: ${t.hours} | Recursos: ${t.resources}`);
+    lines.push(`- ${t.name}: ${fmtDate(t.start)} -> ${fmtDate(t.end)} (${dBiz} día(s))`);
   }
-  lines.push("");
-  lines.push("Generado desde GitHub Pages.");
+
   return lines.join("\n");
 }
 
 function openMailClient(subject, body){
   const mailto = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   window.location.href = mailto;
+}
+
+/* Modal */
+function openModal(){
+  elModal.classList.add("show");
+  elModal.setAttribute("aria-hidden", "false");
+}
+function closeModal(){
+  elModal.classList.remove("show");
+  elModal.setAttribute("aria-hidden", "true");
 }
 
 /* Eventos */
@@ -630,11 +640,25 @@ document.getElementById("btnEmail").addEventListener("click", () => {
     updateKPIsAndCharts(tasks, rangeInfo);
 
     const subject = `Solicitud de Cambio - Gantt (${fmtDate(rangeInfo.min)} -> ${fmtDate(rangeInfo.max)})`;
-    const body = buildEmailBody(desc, tasks, rangeInfo);
+    const body = buildEmailBodyWanted(desc, tasks, rangeInfo);
     openMailClient(subject, body);
   }catch(e){
     showError(e.message || String(e));
   }
+});
+
+/* Clic para ampliar donut */
+document.getElementById("chartDays").addEventListener("click", () => {
+  if(!chartDaysBig) return;
+  openModal();
+});
+btnCloseModal.addEventListener("click", closeModal);
+elModal.addEventListener("click", (ev) => {
+  // cerrar si click fue en el backdrop
+  if(ev.target === elModal) closeModal();
+});
+document.addEventListener("keydown", (ev) => {
+  if(ev.key === "Escape") closeModal();
 });
 
 /* Init */
