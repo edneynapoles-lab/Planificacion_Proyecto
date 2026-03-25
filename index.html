@@ -32,6 +32,10 @@
         <input id="filePicker" type="file" accept=".ganttplan,application/json" style="display:none" />
 
         <button class="btn ghost" id="btnEmail" type="button">✉️ Enviar por mail</button>
+
+        <button class="btn ghost" id="btnRemindersIcs" type="button">🗓️ Recordatorios (.ics)</button>
+        <button class="btn ghost" id="btnRemindersClear" type="button">🧽 Limpiar recordatorios</button>
+
         <button class="btn" id="btnClear" type="button">🧹 Limpiar</button>
         <button class="btn primary" id="btnGenerate" type="button">🚀 Generar</button>
       </div>
@@ -54,7 +58,7 @@
             <label class="label">Descripción de la Solicitud de Cambio</label>
             <textarea class="input" id="sc_desc" placeholder="Ej: Ajustar validaciones de checkout, agregar campo X, corregir bug Y..."></textarea>
             <div class="hint">
-              * Esta descripción se mostrará en el Gantt y se incluirá en el correo.
+              * Esta descripción se mostrará en el Gantt, se incluirá en el correo y se usará para nombrar el archivo.
             </div>
           </div>
 
@@ -133,8 +137,6 @@
               </div>
 
               <div style="height:10px"></div>
-
-              <!-- Solo donut + clic para ampliar -->
               <div class="small-note">Clic sobre la gráfica para ampliar.</div>
               <canvas id="chartDays" class="clickable" title="Clic para ampliar"></canvas>
             </div>
@@ -159,7 +161,6 @@
     </section>
   </div>
 
-  <!-- Modal para ampliar -->
   <div id="chartModal" class="modal" aria-hidden="true">
     <div class="modal-card" role="dialog" aria-modal="true" aria-label="Gráfica ampliada">
       <div class="modal-head">

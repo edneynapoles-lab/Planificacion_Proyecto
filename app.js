@@ -1,4 +1,5 @@
 const DEFAULT_HOURS_PER_PERSON_PER_DAY = 8;
+const STORAGE_REMINDERS_KEY = "gantt_sc_reminders_v1";
 
 const TASKS = [
   { id: "t1", name: "Desarrollo de la solicitud de Cambio", colorA: "rgba(47,128,255,.72)", colorB: "rgba(34,195,238,.26)" },
@@ -27,6 +28,7 @@ let fpInstances = [];
 let chartDays = null;
 let chartDaysBig = null;
 
+/* ===== Utils ===== */
 function pad2(n){ return String(n).padStart(2, "0"); }
 function fmtDate(d){ return d ? `${pad2(d.getDate())}/${pad2(d.getMonth()+1)}/${d.getFullYear()}` : "—"; }
 function toISODate(d){ return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
@@ -36,14 +38,9 @@ function parseISODate(s){
   if(!y || !m || !dd) return null;
   return new Date(y, m-1, dd, 12, 0, 0);
 }
-
-function getHoursPerDay(){
-  const raw = (elHoursPerDay?.value || "").trim().replace(",", ".");
-  const v = raw === "" ? DEFAULT_HOURS_PER_PERSON_PER_DAY : Number(raw);
-  if(Number.isNaN(v) || v <= 0) throw new Error('Horas por día debe ser un número válido (> 0).');
-  return v;
+function startOfDayLocal(d){
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0,0,0,0);
 }
-
 function isWeekend(date){
   const day = date.getDay();
   return day === 0 || day === 6;
@@ -63,7 +60,6 @@ function nextBusinessDay(date){
   do { d = addDays(d, 1); } while(isWeekend(d));
   return d;
 }
-
 function businessDaysInclusive(a, b){
   const A = new Date(a.getFullYear(), a.getMonth(), a.getDate(), 12, 0, 0);
   const B = new Date(b.getFullYear(), b.getMonth(), b.getDate(), 12, 0, 0);
@@ -74,17 +70,32 @@ function businessDaysInclusive(a, b){
   }
   return count;
 }
-
 function businessDayOffset(min, target){
   const days = businessDaysInclusive(min, target);
   return Math.max(0, days - 1);
 }
-
+function addBusinessDays(date, n){
+  let d = normalizeToBusinessDay(date);
+  let remaining = n;
+  while(remaining > 0){
+    d = addDays(d, 1);
+    if(!isWeekend(d)) remaining--;
+  }
+  return d;
+}
 function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
 
 function showError(msg){ elError.textContent = msg; elError.classList.add("show"); }
 function clearError(){ elError.textContent = ""; elError.classList.remove("show"); }
 
+function getHoursPerDay(){
+  const raw = (elHoursPerDay?.value || "").trim().replace(",", ".");
+  const v = raw === "" ? DEFAULT_HOURS_PER_PERSON_PER_DAY : Number(raw);
+  if(Number.isNaN(v) || v <= 0) throw new Error('Horas por día debe ser un número válido (> 0).');
+  return v;
+}
+
+/* ===== Reset ===== */
 function resetUI(){
   clearError();
 
@@ -116,6 +127,7 @@ function resetUI(){
   kpiLongestSub.textContent = "—";
 }
 
+/* ===== Inputs ===== */
 function renderInputs(){
   elBody.innerHTML = "";
   fpInstances.forEach(fp => fp.destroy && fp.destroy());
@@ -130,7 +142,7 @@ function renderInputs(){
         <span class="dot" style="background:${t.colorA}; box-shadow:0 0 0 3px ${t.colorB};"></span>
         <div>
           <div style="font-weight:900; font-size:12px;">${t.name}</div>
-          <div style="color:rgba(17,26,44,.55); font-size:11px; margin-top:2px;">Fase ${idx+1}</div>
+          <div style="color:rgba(255,255,255,.62); font-size:11px; margin-top:2px;">Fase ${idx+1}</div>
         </div>
       </div>
     `;
@@ -170,6 +182,7 @@ function renderInputs(){
   fpInstances.push(fp);
 }
 
+/* ===== Scheduling ===== */
 function scheduleByCapacity(currentDate, usedFraction, hours, resources){
   if(hours <= 0) return { startDate:null, endDate:null, nextDate: currentDate, nextUsedFraction: usedFraction };
 
@@ -269,6 +282,7 @@ function readAndComputeTasks(){
   return { desc, tasks };
 }
 
+/* ===== Gantt ===== */
 function renderGantt(desc, tasks){
   const withDates = tasks.filter(t => t.start && t.end);
   if(withDates.length === 0) throw new Error("No hay fases con fechas para dibujar.");
@@ -288,11 +302,11 @@ function renderGantt(desc, tasks){
   colLeft.className = "col-left";
   colLeft.innerHTML = `
     <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px;">
-      <div style="font-weight:900; color:rgba(17,26,44,.78);">Fase</div>
-      <div style="color:rgba(17,26,44,.55); font-size:10.5px;">Rango: ${fmtDate(min)} → ${fmtDate(max)}</div>
+      <div style="font-weight:900; color:rgba(255,255,255,.86);">Fase</div>
+      <div style="color:rgba(255,255,255,.62); font-size:10.5px;">Rango: ${fmtDate(min)} → ${fmtDate(max)}</div>
     </div>
-    <div style="color:rgba(17,26,44,.80); font-size:11px; line-height:1.2;">
-      <div style="color:rgba(17,26,44,.55); font-weight:900; letter-spacing:.15px; margin-bottom:3px;">Descripción</div>
+    <div style="color:rgba(255,255,255,.82); font-size:11px; line-height:1.2;">
+      <div style="color:rgba(255,255,255,.62); font-weight:900; letter-spacing:.15px; margin-bottom:3px;">Descripción</div>
       <div style="white-space:normal;">${escapeHtml(desc)}</div>
     </div>
   `;
@@ -374,6 +388,7 @@ function renderGantt(desc, tasks){
   return { min, max, totalBizDays };
 }
 
+/* ===== Charts ===== */
 function updateKPIsAndCharts(tasks, rangeInfo){
   const withDates = tasks.filter(t => t.start && t.end);
 
@@ -396,7 +411,6 @@ function updateKPIsAndCharts(tasks, rangeInfo){
     return (f && f.start && f.end) ? businessDaysInclusive(f.start,f.end) : 0;
   });
 
-  // Doughnut pequeño (panel)
   if(chartDays) chartDays.destroy();
   chartDays = new Chart(document.getElementById("chartDays"), {
     type: "doughnut",
@@ -404,13 +418,12 @@ function updateKPIsAndCharts(tasks, rangeInfo){
     options: {
       responsive:true, maintainAspectRatio:false,
       plugins:{
-        legend:{ position:"bottom", labels:{ color:"rgba(17,26,44,.72)", boxWidth:12, font:{size:10} } },
+        legend:{ position:"bottom", labels:{ color:"rgba(255,255,255,.78)", boxWidth:12, font:{size:10} } },
         tooltip:{ callbacks:{ label:(ctx)=>` ${ctx.label}: ${ctx.raw} día(s)` } }
       }
     }
   });
 
-  // Doughnut grande (modal)
   if(chartDaysBig) chartDaysBig.destroy();
   chartDaysBig = new Chart(document.getElementById("chartDaysBig"), {
     type: "doughnut",
@@ -418,7 +431,7 @@ function updateKPIsAndCharts(tasks, rangeInfo){
     options: {
       responsive:true, maintainAspectRatio:false,
       plugins:{
-        legend:{ position:"right", labels:{ color:"rgba(17,26,44,.78)", boxWidth:14, font:{size:12} } },
+        legend:{ position:"right", labels:{ color:"rgba(255,255,255,.86)", boxWidth:14, font:{size:12} } },
         tooltip:{ callbacks:{ label:(ctx)=>` ${ctx.label}: ${ctx.raw} día(s)` } }
       }
     }
@@ -434,6 +447,7 @@ function escapeHtml(str){
     .replaceAll("'", "&#039;");
 }
 
+/* ===== Save/load .ganttplan ===== */
 function buildStateFromUI(){
   return {
     version: 1,
@@ -449,7 +463,6 @@ function buildStateFromUI(){
     }))
   };
 }
-
 function applyStateToUI(state){
   if(!state || !state.tasks) throw new Error("Formato de guardado inválido.");
 
@@ -473,20 +486,17 @@ function applyStateToUI(state){
     }
   }
 }
-
 function encodePlan(state){
   const json = JSON.stringify(state);
   const b64 = btoa(unescape(encodeURIComponent(json)));
   return "GANTTPLANv1:" + b64;
 }
-
 function decodePlan(text){
   if(!text || !text.startsWith("GANTTPLANv1:")) throw new Error("Archivo inválido o versión no soportada.");
   const b64 = text.slice("GANTTPLANv1:".length);
   const json = decodeURIComponent(escape(atob(b64)));
   return JSON.parse(json);
 }
-
 function downloadTextFile(filename, text){
   const blob = new Blob([text], { type: "application/octet-stream" });
   const url = URL.createObjectURL(blob);
@@ -498,7 +508,6 @@ function downloadTextFile(filename, text){
   a.remove();
   URL.revokeObjectURL(url);
 }
-
 function slugifyFilename(input, maxLen = 70){
   const s = String(input || "").trim();
   if(!s) return "sin_descripcion";
@@ -510,17 +519,17 @@ function slugifyFilename(input, maxLen = 70){
   return out || "sin_descripcion";
 }
 
-/* Mail: formato pedido (sin horas/recursos). "Negrita" en texto plano: **...** */
+/* ===== Email ===== */
 function buildEmailBodyWanted(desc, tasks, rangeInfo){
   const lines = [];
 
-  lines.push("**Descripción:**");
+  lines.push("DESCRIPCIÓN:");
   lines.push(desc);
   lines.push("");
 
-  lines.push("**Fecha de Inicio y Fin:** " + `${fmtDate(rangeInfo.min)} -> ${fmtDate(rangeInfo.max)}`);
-  lines.push("**Duración total (L-V):** " + `${rangeInfo.totalBizDays} día(s)`);
-  lines.push("**Fases:**");
+  lines.push("FECHA DE INICIO Y FIN: " + `${fmtDate(rangeInfo.min)} -> ${fmtDate(rangeInfo.max)}`);
+  lines.push("DURACIÓN TOTAL (L-V): " + `${rangeInfo.totalBizDays} día(s)`);
+  lines.push("FASES:");
 
   for(const t of tasks){
     if(!t.start || !t.end) continue;
@@ -530,13 +539,12 @@ function buildEmailBodyWanted(desc, tasks, rangeInfo){
 
   return lines.join("\n");
 }
-
 function openMailClient(subject, body){
   const mailto = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   window.location.href = mailto;
 }
 
-/* Modal */
+/* ===== Modal ===== */
 function openModal(){
   elModal.classList.add("show");
   elModal.setAttribute("aria-hidden", "false");
@@ -546,13 +554,192 @@ function closeModal(){
   elModal.setAttribute("aria-hidden", "true");
 }
 
-/* Eventos */
+/* ===== Recordatorios A + B ===== */
+function shortenDesc(desc, maxLen = 50){
+  const s = String(desc || "").trim().replace(/\s+/g, " ");
+  if(s.length <= maxLen) return s;
+  return s.slice(0, maxLen - 1) + "…";
+}
+
+function computeReminders(desc, tasks, rangeInfo){
+  const short = shortenDesc(desc, 50);
+
+  const t1 = tasks.find(t => t.id === "t1");
+  const t2 = tasks.find(t => t.id === "t2");
+  const t3 = tasks.find(t => t.id === "t3");
+
+  const reminders = [];
+
+  // 1) Mitad desarrollo
+  if(t1?.start && t1?.end){
+    const t1Days = businessDaysInclusive(t1.start, t1.end);
+    const halfOffset = Math.max(0, Math.floor((t1Days - 1) / 2));
+    const halfDate = addBusinessDays(t1.start, halfOffset);
+    reminders.push({
+      id: "half_dev",
+      title: `SC - MITAD DEV - ${short}`,
+      dateISO: toISODate(halfDate),
+      done: false
+    });
+  }
+
+  // 2) Inicio QA (t2, fallback t3)
+  let qaStart = null;
+  if(t2?.start) qaStart = t2.start;
+  else if(t3?.start) qaStart = t3.start;
+
+  if(qaStart){
+    reminders.push({
+      id: "qa_start",
+      title: `SC - INICIO QA - ${short}`,
+      dateISO: toISODate(qaStart),
+      done: false
+    });
+  }
+
+  // 3) Inicio Testing (t3 si existe)
+  if(t3?.start){
+    reminders.push({
+      id: "testing_start",
+      title: `SC - INICIO TESTING - ${short}`,
+      dateISO: toISODate(t3.start),
+      done: false
+    });
+  }
+
+  // 4) Fin plan (fin rango total)
+  if(rangeInfo?.max){
+    reminders.push({
+      id: "plan_end",
+      title: `SC - FIN PLAN - ${short}`,
+      dateISO: toISODate(rangeInfo.max),
+      done: false
+    });
+  }
+
+  return reminders;
+}
+
+function loadReminders(){
+  const raw = localStorage.getItem(STORAGE_REMINDERS_KEY);
+  if(!raw) return [];
+  try{
+    const data = JSON.parse(raw);
+    return Array.isArray(data) ? data : [];
+  }catch{
+    return [];
+  }
+}
+function saveReminders(reminders){
+  localStorage.setItem(STORAGE_REMINDERS_KEY, JSON.stringify(reminders));
+}
+function mergeReminders(newReminders){
+  const existing = loadReminders();
+  const key = (r) => `${r.title}__${r.dateISO}`;
+  const map = new Map(existing.map(r => [key(r), r]));
+  for(const r of newReminders){
+    if(!map.has(key(r))) map.set(key(r), r);
+  }
+  const merged = Array.from(map.values());
+  saveReminders(merged);
+  return merged;
+}
+function listPendingReminders(reminders){
+  const today = startOfDayLocal(new Date());
+  return reminders
+    .filter(r => !r.done)
+    .filter(r => {
+      const d = parseISODate(r.dateISO);
+      if(!d) return false;
+      return startOfDayLocal(d) <= today;
+    });
+}
+function showPendingRemindersIfAny(){
+  const reminders = loadReminders();
+  const pending = listPendingReminders(reminders);
+  if(pending.length === 0) return;
+
+  const msgLines = [
+    "RECORDATORIOS PENDIENTES:",
+    "",
+    ...pending.map(r => `- ${r.title} (${r.dateISO})`),
+    "",
+    "Tip: Importá el .ics para recibir alertas reales en el calendario."
+  ];
+  alert(msgLines.join("\n"));
+}
+function clearReminders(){
+  localStorage.removeItem(STORAGE_REMINDERS_KEY);
+}
+
+/* ===== ICS (compatible Google/Outlook) ===== */
+function escapeIcsText(s){
+  return String(s || "")
+    .replaceAll("\\", "\\\\")
+    .replaceAll(";", "\\;")
+    .replaceAll(",", "\\,")
+    .replaceAll("\n", "\\n");
+}
+function buildIcs(reminders){
+  const now = new Date();
+  const dtstamp = `${now.getUTCFullYear()}${pad2(now.getUTCMonth()+1)}${pad2(now.getUTCDate())}T${pad2(now.getUTCHours())}${pad2(now.getUTCMinutes())}${pad2(now.getUTCSeconds())}Z`;
+
+  const lines = [];
+  lines.push("BEGIN:VCALENDAR");
+  lines.push("VERSION:2.0");
+  lines.push("PRODID:-//Gantt SC//Reminders//ES");
+  lines.push("CALSCALE:GREGORIAN");
+  lines.push("METHOD:PUBLISH");
+
+  for(const r of reminders){
+    const d = parseISODate(r.dateISO);
+    if(!d) continue;
+
+    const y = d.getFullYear();
+    const m = pad2(d.getMonth()+1);
+    const day = pad2(d.getDate());
+    const dtStart = `${y}${m}${day}`;
+
+    const dEnd = addDays(d, 1);
+    const y2 = dEnd.getFullYear();
+    const m2 = pad2(dEnd.getMonth()+1);
+    const day2 = pad2(dEnd.getDate());
+    const dtEnd = `${y2}${m2}${day2}`;
+
+    const uid = `gantt-sc-${dtStart}-${Math.random().toString(16).slice(2)}@local`;
+
+    lines.push("BEGIN:VEVENT");
+    lines.push(`UID:${uid}`);
+    lines.push(`DTSTAMP:${dtstamp}`);
+    lines.push(`DTSTART;VALUE=DATE:${dtStart}`);
+    lines.push(`DTEND;VALUE=DATE:${dtEnd}`);
+    lines.push(`SUMMARY:${escapeIcsText(r.title)}`);
+
+    // Recordatorio: 9h antes (modificable)
+    lines.push("BEGIN:VALARM");
+    lines.push("TRIGGER:-PT9H");
+    lines.push("ACTION:DISPLAY");
+    lines.push("DESCRIPTION:Recordatorio");
+    lines.push("END:VALARM");
+
+    lines.push("END:VEVENT");
+  }
+
+  lines.push("END:VCALENDAR");
+  return lines.join("\r\n");
+}
+
+/* ===== Eventos ===== */
 document.getElementById("btnGenerate").addEventListener("click", () => {
   try{
     clearError();
     const { desc, tasks } = readAndComputeTasks();
     const rangeInfo = renderGantt(desc, tasks);
     updateKPIsAndCharts(tasks, rangeInfo);
+
+    // Guardar recordatorios locales (A)
+    const newReminders = computeReminders(desc, tasks, rangeInfo);
+    mergeReminders(newReminders);
   }catch(e){
     showError(e.message || String(e));
   }
@@ -647,19 +834,44 @@ document.getElementById("btnEmail").addEventListener("click", () => {
   }
 });
 
-/* Clic para ampliar donut */
 document.getElementById("chartDays").addEventListener("click", () => {
   if(!chartDaysBig) return;
   openModal();
 });
 btnCloseModal.addEventListener("click", closeModal);
-elModal.addEventListener("click", (ev) => {
-  // cerrar si click fue en el backdrop
-  if(ev.target === elModal) closeModal();
+elModal.addEventListener("click", (ev) => { if(ev.target === elModal) closeModal(); });
+document.addEventListener("keydown", (ev) => { if(ev.key === "Escape") closeModal(); });
+
+document.getElementById("btnRemindersIcs").addEventListener("click", () => {
+  try{
+    clearError();
+
+    // aseguramos plan calculado
+    const { desc, tasks } = readAndComputeTasks();
+    const rangeInfo = renderGantt(desc, tasks);
+
+    const reminders = computeReminders(desc, tasks, rangeInfo);
+    if(reminders.length === 0) throw new Error("No se pudieron generar recordatorios (faltan fechas).");
+
+    const ics = buildIcs(reminders);
+    const date = new Date();
+    const descSlug = slugifyFilename(desc, 50);
+    const filename = `recordatorios_${descSlug}_${date.getFullYear()}-${pad2(date.getMonth()+1)}-${pad2(date.getDate())}.ics`;
+    downloadTextFile(filename, ics);
+
+    // también guardamos local
+    mergeReminders(reminders);
+
+  }catch(e){
+    showError(e.message || String(e));
+  }
 });
-document.addEventListener("keydown", (ev) => {
-  if(ev.key === "Escape") closeModal();
+
+document.getElementById("btnRemindersClear").addEventListener("click", () => {
+  clearReminders();
+  showError("Recordatorios eliminados.");
 });
 
 /* Init */
 renderInputs();
+showPendingRemindersIfAny();
