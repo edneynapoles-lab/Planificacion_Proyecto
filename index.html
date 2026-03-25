@@ -114,6 +114,8 @@
     .input:focus{ border-color: rgba(124,92,255,.55); box-shadow: 0 0 0 4px rgba(124,92,255,.12); }
     .input[readonly]{opacity:.75; cursor:not-allowed;}
 
+    textarea.input{min-height: 66px; resize: vertical; line-height: 1.25;}
+
     .error{
       border:1px solid rgba(255,77,109,.45);
       background: rgba(255,77,109,.10);
@@ -163,9 +165,8 @@
       color: var(--muted);
       font-size: 11px;
       display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
+      flex-direction:column;
+      gap:6px;
       border-right:1px solid rgba(255,255,255,.10);
       background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
     }
@@ -259,6 +260,9 @@
         <span class="pill">⏱️ 8h/día</span>
         <span class="pill">👥 Recursos</span>
         <button class="btn ghost" id="btnDemo" type="button">✨ Ejemplo</button>
+        <button class="btn ghost" id="btnLoad" type="button">📥 Cargar</button>
+        <button class="btn ghost" id="btnSave" type="button">💾 Guardar</button>
+        <button class="btn ghost" id="btnEmail" type="button">✉️ Enviar por mail</button>
         <button class="btn" id="btnClear" type="button">🧹 Limpiar</button>
         <button class="btn primary" id="btnGenerate" type="button">🚀 Generar</button>
       </div>
@@ -269,13 +273,24 @@
         <div class="card-head">
           <div class="left">
             <h2>1) Datos</h2>
-            <small>Horas + Recursos. Inicio solo para Desarrollo. Fechas auto por capacidad.</small>
+            <small>Descripción + Horas + Recursos. Inicio solo para Desarrollo. Fechas auto por capacidad.</small>
           </div>
           <span class="pill">Auto-fechas</span>
         </div>
 
         <div class="card-body">
           <div id="errorBox" class="error"></div>
+
+          <!-- (1) Descripción -->
+          <div style="margin-bottom:10px;">
+            <label style="display:block; font-size:11px; color:rgba(255,255,255,.68); font-weight:900; letter-spacing:.15px; margin-bottom:6px;">
+              Descripción de la Solicitud de Cambio
+            </label>
+            <textarea class="input" id="sc_desc" placeholder="Ej: Ajustar validaciones de checkout, agregar campo X, corregir bug Y..."></textarea>
+            <div style="margin-top:6px;color:rgba(255,255,255,.55);font-size:11.5px;line-height:1.25;">
+              * Esta descripción se mostrará en el Gantt y se incluirá en el correo.
+            </div>
+          </div>
 
           <table>
             <thead>
@@ -349,7 +364,7 @@
       <div class="card-head">
         <div class="left">
           <h2>3) Gantt (compacto)</h2>
-          <small>Barras por días hábiles. Sin detalle de horas visible en la barra.</small>
+          <small>Barras por días hábiles. Incluye descripción de la Solicitud de Cambio.</small>
         </div>
         <span class="pill">Timeline</span>
       </div>
@@ -367,6 +382,8 @@
   <script>
     const BASE_HOURS_PER_PERSON_PER_DAY = 8;
 
+    const STORAGE_KEY = "gantt_sc_state_v1";
+
     const TASKS = [
       { id: "t1", name: "Desarrollo de la solicitud de Cambio", colorA: "rgba(124,92,255,.55)", colorB: "rgba(124,92,255,.20)" },
       { id: "t2", name: "Instalación en QA GEOCOM",             colorA: "rgba(46,229,157,.50)", colorB: "rgba(46,229,157,.18)" },
@@ -378,6 +395,7 @@
     const elBody = document.getElementById("taskTableBody");
     const elError = document.getElementById("errorBox");
     const elGantt = document.getElementById("gantt");
+    const elDesc = document.getElementById("sc_desc");
 
     const kpiHours = document.getElementById("kpiHours");
     const kpiRange = document.getElementById("kpiRange");
@@ -439,6 +457,38 @@
 
     function showError(msg){ elError.textContent = msg; elError.classList.add("show"); }
     function clearError(){ elError.textContent = ""; elError.classList.remove("show"); }
+
+    function resetUI(){
+      clearError();
+
+      elDesc.value = "";
+
+      TASKS.forEach(t => {
+        document.getElementById(`${t.id}_hours`).value = "";
+        document.getElementById(`${t.id}_res`).value = "1";
+        const s = document.getElementById(`${t.id}_start`);
+        const e = document.getElementById(`${t.id}_end`);
+        if(s) s.value = "";
+        if(e) e.value = "";
+      });
+
+      // reset flatpickr visual (input ya quedó vacío, pero aseguramos)
+      fpInstances.forEach(fp => {
+        try { fp.clear(); } catch(_) {}
+      });
+
+      elGantt.innerHTML = "";
+
+      if(chartHours) chartHours.destroy();
+      if(chartDays) chartDays.destroy();
+      chartHours = null; chartDays = null;
+
+      kpiHours.textContent = "—";
+      kpiRange.textContent = "—";
+      kpiTotalDays.textContent = "—";
+      kpiLongest.textContent = "—";
+      kpiLongestSub.textContent = "—";
+    }
 
     function renderInputs(){
       elBody.innerHTML = "";
@@ -542,6 +592,9 @@
     }
 
     function readAndComputeTasks(){
+      const desc = (elDesc.value || "").trim();
+      if(!desc) throw new Error('Debes ingresar la "Descripción de la Solicitud de Cambio".');
+
       const tasks = TASKS.map(t => {
         const hoursRaw = document.getElementById(`${t.id}_hours`).value.trim();
         const resRaw = document.getElementById(`${t.id}_res`).value.trim();
@@ -585,10 +638,10 @@
         document.getElementById(`${t.id}_end`).value   = t.end   ? toISODate(t.end)   : "";
       }
 
-      return tasks;
+      return { desc, tasks };
     }
 
-    function renderGantt(tasks){
+    function renderGantt(desc, tasks){
       const withDates = tasks.filter(t => t.start && t.end);
       if(withDates.length === 0) throw new Error("No hay fases con fechas para dibujar.");
 
@@ -606,8 +659,14 @@
       const colLeft = document.createElement("div");
       colLeft.className = "col-left";
       colLeft.innerHTML = `
-        <div>Fase</div>
-        <div style="color:rgba(255,255,255,.55); font-size:10.5px;">Rango: ${fmtDate(min)} → ${fmtDate(max)}</div>
+        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px;">
+          <div style="font-weight:900; color:rgba(255,255,255,.78);">Fase</div>
+          <div style="color:rgba(255,255,255,.55); font-size:10.5px;">Rango: ${fmtDate(min)} → ${fmtDate(max)}</div>
+        </div>
+        <div style="color:rgba(255,255,255,.72); font-size:11px; line-height:1.2;">
+          <div style="color:rgba(255,255,255,.55); font-weight:900; letter-spacing:.15px; margin-bottom:3px;">Descripción</div>
+          <div style="white-space:normal;">${escapeHtml(desc)}</div>
+        </div>
       `;
 
       const timeline = document.createElement("div");
@@ -739,11 +798,110 @@
       });
     }
 
+    function escapeHtml(str){
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    // (2) Guardar/Cargar estado
+    function buildStateFromUI(){
+      return {
+        version: 1,
+        savedAt: new Date().toISOString(),
+        desc: (elDesc.value || "").trim(),
+        tasks: TASKS.map(t => ({
+          id: t.id,
+          hours: (document.getElementById(`${t.id}_hours`).value || "").trim(),
+          res: (document.getElementById(`${t.id}_res`).value || "").trim(),
+          start: (document.getElementById(`${t.id}_start`)?.value || "").trim(), // t1 manual / others auto
+          end: (document.getElementById(`${t.id}_end`)?.value || "").trim()
+        }))
+      };
+    }
+
+    function applyStateToUI(state){
+      if(!state || !state.tasks) throw new Error("Formato de guardado inválido.");
+
+      elDesc.value = state.desc || "";
+
+      for(const row of state.tasks){
+        const t = TASKS.find(x => x.id === row.id);
+        if(!t) continue;
+
+        document.getElementById(`${t.id}_hours`).value = row.hours ?? "";
+        document.getElementById(`${t.id}_res`).value = row.res ?? "1";
+
+        // start/end se setean en inputs (sirve para mantener lo auto si ya estaba)
+        const s = document.getElementById(`${t.id}_start`);
+        const e = document.getElementById(`${t.id}_end`);
+        if(s) s.value = row.start ?? "";
+        if(e) e.value = row.end ?? "";
+
+        // sincronizar flatpickr de t1 (si existe)
+        if(t.id === "t1" && fpInstances[0] && row.start){
+          try { fpInstances[0].setDate(row.start, true, "Y-m-d"); } catch(_) {}
+        }
+      }
+    }
+
+    function saveToLocalStorage(){
+      const state = buildStateFromUI();
+
+      if(!state.desc) throw new Error('Debes completar "Descripción" antes de guardar.');
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      return state;
+    }
+
+    function loadFromLocalStorage(){
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) throw new Error("No hay un guardado previo para cargar.");
+      const state = JSON.parse(raw);
+      applyStateToUI(state);
+      return state;
+    }
+
+    // (4) Enviar por mail
+    function buildEmailBody(desc, tasks, rangeInfo){
+      const lines = [];
+
+      lines.push("Detalle Gantt - Solicitud de Cambio");
+      lines.push("");
+      lines.push("Descripción:");
+      lines.push(desc);
+      lines.push("");
+      lines.push(`Rango: ${fmtDate(rangeInfo.min)} -> ${fmtDate(rangeInfo.max)}`);
+      lines.push(`Duración total (L-V): ${rangeInfo.totalBizDays} día(s)`);
+      lines.push("");
+
+      lines.push("Fases:");
+      for(const t of tasks){
+        if(!t.start || !t.end) continue;
+        const dBiz = businessDaysInclusive(t.start, t.end);
+        lines.push(`- ${t.name}: ${fmtDate(t.start)} -> ${fmtDate(t.end)} (${dBiz} día(s)) | Horas: ${t.hours} | Recursos: ${t.resources}`);
+      }
+
+      lines.push("");
+      lines.push("Generado desde GitHub Pages.");
+
+      return lines.join("\n");
+    }
+
+    function openMailClient(subject, body){
+      const mailto = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.location.href = mailto;
+    }
+
+    // Eventos UI
     document.getElementById("btnGenerate").addEventListener("click", () => {
       try{
         clearError();
-        const tasks = readAndComputeTasks();
-        const rangeInfo = renderGantt(tasks);
+        const { desc, tasks } = readAndComputeTasks();
+        const rangeInfo = renderGantt(desc, tasks);
         updateKPIsAndCharts(tasks, rangeInfo);
       }catch(e){
         showError(e.message || String(e));
@@ -751,31 +909,18 @@
     });
 
     document.getElementById("btnClear").addEventListener("click", () => {
-      clearError();
-      TASKS.forEach(t => {
-        document.getElementById(`${t.id}_hours`).value = "";
-        document.getElementById(`${t.id}_res`).value = "1";
-        const s = document.getElementById(`${t.id}_start`);
-        const e = document.getElementById(`${t.id}_end`);
-        if(s) s.value = "";
-        if(e) e.value = "";
-      });
-      elGantt.innerHTML = "";
-      if(chartHours) chartHours.destroy();
-      if(chartDays) chartDays.destroy();
-      chartHours = null; chartDays = null;
-
-      kpiHours.textContent = "—";
-      kpiRange.textContent = "—";
-      kpiTotalDays.textContent = "—";
-      kpiLongest.textContent = "—";
-      kpiLongestSub.textContent = "—";
+      resetUI();
     });
 
     document.getElementById("btnDemo").addEventListener("click", () => {
       clearError();
 
+      elDesc.value = "Ejemplo: Ajustes en validación de orden y despliegue controlado en QA.";
+
       document.getElementById("t1_start").value = "2026-02-02";
+      if(fpInstances[0]){
+        try { fpInstances[0].setDate("2026-02-02", true, "Y-m-d"); } catch(_) {}
+      }
 
       document.getElementById("t1_hours").value = 195; document.getElementById("t1_res").value = 2;
       document.getElementById("t2_hours").value = 3;   document.getElementById("t2_res").value = 1;
@@ -786,6 +931,51 @@
       document.getElementById("btnGenerate").click();
     });
 
+    document.getElementById("btnSave").addEventListener("click", () => {
+      try{
+        clearError();
+
+        // Guardamos lo que el usuario tiene
+        const state = saveToLocalStorage();
+
+        // (3) Al guardar, resetea todo (incluyendo descripción)
+        resetUI();
+
+        // Opcional: avisito simple
+        showError(`Guardado OK (${new Date(state.savedAt).toLocaleString()}). Se limpió el formulario.`);
+      }catch(e){
+        showError(e.message || String(e));
+      }
+    });
+
+    document.getElementById("btnLoad").addEventListener("click", () => {
+      try{
+        clearError();
+        loadFromLocalStorage();
+        // si quieren, pueden tocar "Generar" para recalcular fechas; dejamos editable
+      }catch(e){
+        showError(e.message || String(e));
+      }
+    });
+
+    document.getElementById("btnEmail").addEventListener("click", () => {
+      try{
+        clearError();
+
+        // Genera el gantt si aún no se generó
+        const { desc, tasks } = readAndComputeTasks();
+        const rangeInfo = renderGantt(desc, tasks);
+        updateKPIsAndCharts(tasks, rangeInfo);
+
+        const subject = `Solicitud de Cambio - Gantt (${fmtDate(rangeInfo.min)} -> ${fmtDate(rangeInfo.max)})`;
+        const body = buildEmailBody(desc, tasks, rangeInfo);
+        openMailClient(subject, body);
+      }catch(e){
+        showError(e.message || String(e));
+      }
+    });
+
+    // Init
     renderInputs();
   </script>
 </body>
