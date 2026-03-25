@@ -255,17 +255,17 @@
         </p>
       </div>
       <div style="margin-bottom:10px;">
-        <input id="projectName" placeholder="Nombre del proyecto" style="padding:6px;border-radius:8px;border:1px solid #ccc;">
+        <input id="projectName" placeholder="Nombre del proyecto" style="padding:8px;border-radius:10px;border:1px solid #ccc;width:320px;">
     </div>
     <div class="actions">
         <span class="pill">🗓️ L–V</span>
-        <span class="pill">⏱️ 8h/día</span>
+        <span class="pill">⏱️ <input id="hoursPerDay" type="number" value="8" style="width:50px;"> h/día</span>
         <span class="pill">👥 Recursos</span>
         <button class="btn ghost" id="btnDemo" type="button">✨ Ejemplo</button>
         <button class="btn" id="btnClear" type="button">🧹 Limpiar</button>
         <button class="btn" id="btnSave" type="button">💾 Guardar</button>
-        <button class="btn" id="btnLoadLast" type="button">📂 Último</button>
-        <button class="btn" id="btnExport" type="button">⬇️ Exportar</button>
+        <button class="btn" id="btnLoadLast" type="button"><span title="Cargar plan">📂</span> Último</button>
+        <button class="btn" id="btnExport" type="button"><span title="Exportar plan">⬇️</span> Exportar</button>
         <button class="btn primary" id="btnGenerate" type="button">🚀 Generar</button>
       </div>
     </header>
@@ -354,7 +354,7 @@
     <section class="card">
       <div class="card-head">
         <div class="left">
-          <h2>3) Gantt (compacto)</h2>
+          <h2 id="ganttTitle">3) Gantt (compacto)</h2>
           <small>Barras por días hábiles. Sin detalle de horas visible en la barra.</small>
         </div>
         <span class="pill">Timeline</span>
@@ -417,7 +417,7 @@ function savePlan(){
 
   localStorage.setItem(STORAGE_KEY, JSON.stringify(plans));
   renderPlanList();
-  alert("Plan guardado correctamente");
+  alert("Plan guardado correctamente"); document.getElementById("projectName").value="";
 }
 
 function renderPlanList(){
@@ -435,8 +435,8 @@ function renderPlanList(){
     <div style="margin-bottom:8px; display:flex; justify-content:space-between;">
       <span>${p.fecha}</span>
       <div>
-        <button onclick="loadPlan(${p.id})">📂</button>
-        <button onclick="deletePlan(${p.id})">🗑️</button>
+        <button onclick="loadPlan(${p.id})"><span title="Cargar plan">📂</span></button>
+        <button onclick="deletePlan(${p.id})"><span title="Eliminar plan">🗑️</span></button>
       </div>
     </div>
   `).join("");
@@ -497,7 +497,7 @@ function savePlan(){
 
   localStorage.setItem(STORAGE_KEY, JSON.stringify(plans));
   renderPlanList();
-  alert("Plan guardado correctamente");
+  alert("Plan guardado correctamente"); document.getElementById("projectName").value="";
 }
 
 function renderPlanList(){
@@ -515,11 +515,11 @@ function renderPlanList(){
     <div style="margin-bottom:8px; display:flex; justify-content:space-between;">
       <span><b>${p.nombre}</b> - ${p.fecha}</span>
       <div>
-        <button onclick="loadPlan(${p.id})">📂</button>
-        <button onclick="exportPlan(${p.id})">⬇️</button>
-        <button onclick="sendMail(${p.id})">📧</button>
-        <button onclick="addToOutlook(${p.id})">📅</button>
-        <button onclick="deletePlan(${p.id})">🗑️</button>
+        <button onclick="loadPlan(${p.id})"><span title="Cargar plan">📂</span></button>
+        <button onclick="exportPlan(${p.id})"><span title="Exportar plan">⬇️</span></button>
+        <button onclick="sendMail(${p.id})"><span title="Enviar por mail">📧</span></button>
+        <button onclick="addToOutlook(${p.id})"><span title="Crear evento en Outlook">📅</span></button>
+        <button onclick="deletePlan(${p.id})"><span title="Eliminar plan">🗑️</span></button>
       </div>
     </div>
   `).join("");
@@ -575,6 +575,19 @@ document.getElementById("btnExport").addEventListener("click", ()=>{
     return;
   }
   exportPlan(plans[plans.length-1].id);
+});
+
+
+document.getElementById("hoursPerDay").addEventListener("change", (e)=>{
+  BASE_HOURS_PER_PERSON_PER_DAY = Number(e.target.value) || 8;
+});
+
+
+const originalGenerateBtn = document.getElementById("btnGenerate");
+originalGenerateBtn.addEventListener("click", ()=>{
+  const name = document.getElementById("projectName").value || "Sin nombre";
+  const el = document.getElementById("ganttTitle");
+  if(el) el.innerText = "3) Gantt (compacto) - " + name;
 });
 
 </script>
@@ -618,7 +631,7 @@ function savePlan(){
 
   localStorage.setItem(STORAGE_KEY, JSON.stringify(plans));
   renderPlanList();
-  alert("Plan guardado correctamente");
+  alert("Plan guardado correctamente"); document.getElementById("projectName").value="";
 }
 
 function renderPlanList(){
@@ -636,8 +649,8 @@ function renderPlanList(){
     <div style="margin-bottom:8px; display:flex; justify-content:space-between;">
       <span>${p.fecha}</span>
       <div>
-        <button onclick="loadPlan(${p.id})">📂</button>
-        <button onclick="deletePlan(${p.id})">🗑️</button>
+        <button onclick="loadPlan(${p.id})"><span title="Cargar plan">📂</span></button>
+        <button onclick="deletePlan(${p.id})"><span title="Eliminar plan">🗑️</span></button>
       </div>
     </div>
   `).join("");
@@ -698,7 +711,7 @@ function savePlan(){
 
   localStorage.setItem(STORAGE_KEY, JSON.stringify(plans));
   renderPlanList();
-  alert("Plan guardado correctamente");
+  alert("Plan guardado correctamente"); document.getElementById("projectName").value="";
 }
 
 function renderPlanList(){
@@ -716,11 +729,11 @@ function renderPlanList(){
     <div style="margin-bottom:8px; display:flex; justify-content:space-between;">
       <span><b>${p.nombre}</b> - ${p.fecha}</span>
       <div>
-        <button onclick="loadPlan(${p.id})">📂</button>
-        <button onclick="exportPlan(${p.id})">⬇️</button>
-        <button onclick="sendMail(${p.id})">📧</button>
-        <button onclick="addToOutlook(${p.id})">📅</button>
-        <button onclick="deletePlan(${p.id})">🗑️</button>
+        <button onclick="loadPlan(${p.id})"><span title="Cargar plan">📂</span></button>
+        <button onclick="exportPlan(${p.id})"><span title="Exportar plan">⬇️</span></button>
+        <button onclick="sendMail(${p.id})"><span title="Enviar por mail">📧</span></button>
+        <button onclick="addToOutlook(${p.id})"><span title="Crear evento en Outlook">📅</span></button>
+        <button onclick="deletePlan(${p.id})"><span title="Eliminar plan">🗑️</span></button>
       </div>
     </div>
   `).join("");
@@ -778,10 +791,23 @@ document.getElementById("btnExport").addEventListener("click", ()=>{
   exportPlan(plans[plans.length-1].id);
 });
 
+
+document.getElementById("hoursPerDay").addEventListener("change", (e)=>{
+  BASE_HOURS_PER_PERSON_PER_DAY = Number(e.target.value) || 8;
+});
+
+
+const originalGenerateBtn = document.getElementById("btnGenerate");
+originalGenerateBtn.addEventListener("click", ()=>{
+  const name = document.getElementById("projectName").value || "Sin nombre";
+  const el = document.getElementById("ganttTitle");
+  if(el) el.innerText = "3) Gantt (compacto) - " + name;
+});
+
 </script>
 
   <script>
-    const BASE_HOURS_PER_PERSON_PER_DAY = 8;
+    let BASE_HOURS_PER_PERSON_PER_DAY = 8;
 
     const TASKS = [
       { id: "t1", name: "Desarrollo de la solicitud de Cambio", colorA: "rgba(124,92,255,.55)", colorB: "rgba(124,92,255,.20)" },
@@ -1070,7 +1096,7 @@ document.getElementById("btnExport").addEventListener("click", ()=>{
             <span>${t.name}</span>
           </div>
           <div class="meta">
-            <span class="pill">📅 ${fmtDate(t.start)} → ${fmtDate(t.end)}</span>
+            <span class="pill"><span title="Crear evento en Outlook">📅</span> ${fmtDate(t.start)} → ${fmtDate(t.end)}</span>
             <span class="pill">🗓️ ${dBiz}d</span>
           </div>
         `;
@@ -1243,7 +1269,7 @@ function savePlan(){
 
   localStorage.setItem(STORAGE_KEY, JSON.stringify(plans));
   renderPlanList();
-  alert("Plan guardado correctamente");
+  alert("Plan guardado correctamente"); document.getElementById("projectName").value="";
 }
 
 function renderPlanList(){
@@ -1261,8 +1287,8 @@ function renderPlanList(){
     <div style="margin-bottom:8px; display:flex; justify-content:space-between;">
       <span>${p.fecha}</span>
       <div>
-        <button onclick="loadPlan(${p.id})">📂</button>
-        <button onclick="deletePlan(${p.id})">🗑️</button>
+        <button onclick="loadPlan(${p.id})"><span title="Cargar plan">📂</span></button>
+        <button onclick="deletePlan(${p.id})"><span title="Eliminar plan">🗑️</span></button>
       </div>
     </div>
   `).join("");
@@ -1323,7 +1349,7 @@ function savePlan(){
 
   localStorage.setItem(STORAGE_KEY, JSON.stringify(plans));
   renderPlanList();
-  alert("Plan guardado correctamente");
+  alert("Plan guardado correctamente"); document.getElementById("projectName").value="";
 }
 
 function renderPlanList(){
@@ -1341,11 +1367,11 @@ function renderPlanList(){
     <div style="margin-bottom:8px; display:flex; justify-content:space-between;">
       <span><b>${p.nombre}</b> - ${p.fecha}</span>
       <div>
-        <button onclick="loadPlan(${p.id})">📂</button>
-        <button onclick="exportPlan(${p.id})">⬇️</button>
-        <button onclick="sendMail(${p.id})">📧</button>
-        <button onclick="addToOutlook(${p.id})">📅</button>
-        <button onclick="deletePlan(${p.id})">🗑️</button>
+        <button onclick="loadPlan(${p.id})"><span title="Cargar plan">📂</span></button>
+        <button onclick="exportPlan(${p.id})"><span title="Exportar plan">⬇️</span></button>
+        <button onclick="sendMail(${p.id})"><span title="Enviar por mail">📧</span></button>
+        <button onclick="addToOutlook(${p.id})"><span title="Crear evento en Outlook">📅</span></button>
+        <button onclick="deletePlan(${p.id})"><span title="Eliminar plan">🗑️</span></button>
       </div>
     </div>
   `).join("");
@@ -1401,6 +1427,19 @@ document.getElementById("btnExport").addEventListener("click", ()=>{
     return;
   }
   exportPlan(plans[plans.length-1].id);
+});
+
+
+document.getElementById("hoursPerDay").addEventListener("change", (e)=>{
+  BASE_HOURS_PER_PERSON_PER_DAY = Number(e.target.value) || 8;
+});
+
+
+const originalGenerateBtn = document.getElementById("btnGenerate");
+originalGenerateBtn.addEventListener("click", ()=>{
+  const name = document.getElementById("projectName").value || "Sin nombre";
+  const el = document.getElementById("ganttTitle");
+  if(el) el.innerText = "3) Gantt (compacto) - " + name;
 });
 
 </script>
