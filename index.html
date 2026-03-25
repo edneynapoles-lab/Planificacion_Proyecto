@@ -1,153 +1,153 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="utf-8">
-<title>Gantt PRO Estable</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Planificador Gantt Pro</title>
 
-<script src="https://cdn.jsdelivr.net/npm/html2canvas"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 
-<style>
-body{font-family:Arial;background:#0b1020;color:white;padding:20px;}
-.card{background:#111;padding:15px;border-radius:10px;margin-bottom:15px;}
-button{margin:5px;padding:8px 12px;border-radius:8px;}
-input{padding:6px;border-radius:6px;}
-#gantt{background:#222;padding:20px;border-radius:10px;margin-top:10px;}
-.bar{height:20px;background:#4caf50;margin:5px 0;}
-</style>
+  <style>
+    body{font-family:'Inter',sans-serif;background:#0b1020;color:#fff;margin:0;padding:20px}
+    .container{max-width:1100px;margin:auto}
+    input,button{padding:8px;border-radius:8px;border:none;margin:4px}
+    input{background:#111;color:#fff;border:1px solid #333}
+    button{background:#6c5ce7;color:#fff;cursor:pointer}
+    button:hover{opacity:.9}
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{border-bottom:1px solid #333;padding:6px;text-align:left}
+    .gantt{margin-top:20px}
+    .bar{height:20px;background:#6c5ce7;border-radius:10px;margin:4px 0}
+  </style>
 </head>
-
 <body>
+<div class="container">
 
-<h2>Planificador Gantt</h2>
+<h1>📊 Planificador Gantt Pro</h1>
 
-<input id="projectName" placeholder="Nombre del proyecto" style="width:300px;">
-<input id="hoursPerDay" type="number" value="8">
+<input id="projectName" placeholder="Nombre del proyecto">
+<input id="hoursPerDay" type="number" value="8" min="1">
 
-<br><br>
+<div>
+  <button onclick="generate()">Generar</button>
+  <button onclick="saveJSON()">Guardar</button>
+  <button onclick="loadJSON()">Cargar</button>
+  <button onclick="sendEmail()">Enviar</button>
+  <input type="file" id="fileInput" style="display:none">
+</div>
 
-<button onclick="generate()">🚀 Generar</button>
-<button onclick="savePlan()">💾 Guardar</button>
-<button onclick="exportJSON()">⬇️ Exportar</button>
-<button onclick="importJSON()">📥 Importar</button>
-<button onclick="sendMail()">📧 Mail</button>
+<table>
+<thead>
+<tr><th>Fase</th><th>Horas</th><th>Recursos</th><th>Inicio</th><th>Fin</th></tr>
+</thead>
+<tbody id="tasks"></tbody>
+</table>
+
+<canvas id="chart"></canvas>
 
 <div id="gantt"></div>
 
-<div class="card">
-<h3>📚 Historial</h3>
-<div id="history"></div>
 </div>
 
 <script>
+const TASKS=[
+ {id:"t1",name:"Desarrollo"},
+ {id:"t2",name:"QA"},
+ {id:"t3",name:"Testing"},
+ {id:"t4",name:"Deploy"},
+ {id:"t5",name:"Certificación"}
+];
 
-let currentPlan = null;
-const STORAGE_KEY = "gantt_pro";
+function init(){
+ const tbody=document.getElementById("tasks");
+ TASKS.forEach(t=>{
+  const tr=document.createElement("tr");
+  tr.innerHTML=`
+   <td>${t.name}</td>
+   <td><input id="${t.id}_h"></td>
+   <td><input id="${t.id}_r" value="1"></td>
+   <td><input id="${t.id}_s"></td>
+   <td><input id="${t.id}_e" readonly></td>`;
+  tbody.appendChild(tr);
+ });
+ flatpickr("#t1_s",{dateFormat:"Y-m-d"});
+}
 
 function generate(){
-  const name = document.getElementById("projectName").value || "Sin nombre";
+ let date=new Date(document.getElementById("t1_s").value);
+ let hpd=Number(document.getElementById("hoursPerDay").value);
+ let effort=[];
+ let gantt="";
 
-  currentPlan = {
-    id: Date.now(),
-    nombre: name,
-    fecha: new Date().toLocaleString(),
-    tasks:[
-      {name:"Desarrollo", days:5},
-      {name:"Testing", days:3}
-    ]
+ TASKS.forEach(t=>{
+  let h=Number(document.getElementById(`${t.id}_h`).value||0);
+  let r=Number(document.getElementById(`${t.id}_r`).value||1);
+  let days=Math.ceil(h/(hpd*r));
+
+  let start=new Date(date);
+  let end=new Date(date);
+  end.setDate(end.getDate()+days);
+
+  document.getElementById(`${t.id}_s`).value=start.toISOString().split("T")[0];
+  document.getElementById(`${t.id}_e`).value=end.toISOString().split("T")[0];
+
+  effort.push(h);
+
+  gantt+=`<div>${t.name}<div class="bar" style="width:${days*40}px"></div></div>`;
+
+  date=end;
+ });
+
+ document.getElementById("gantt").innerHTML="<h3>"+document.getElementById("projectName").value+"</h3>"+gantt;
+
+ new Chart(document.getElementById("chart"),{
+  type:"line",
+  data:{labels:TASKS.map(t=>t.name),datasets:[{data:effort}]}
+ });
+}
+
+function saveJSON(){
+ const data={
+  name:projectName.value,
+  hoursPerDay:hoursPerDay.value,
+  tasks:TASKS.map(t=>({
+   h:document.getElementById(`${t.id}_h`).value,
+   r:document.getElementById(`${t.id}_r`).value
+  }))
+ };
+ const blob=new Blob([JSON.stringify(data)],{type:"application/json"});
+ const a=document.createElement("a");
+ a.href=URL.createObjectURL(blob);
+ a.download="plan.json";
+ a.click();
+}
+
+function loadJSON(){
+ document.getElementById("fileInput").click();
+ document.getElementById("fileInput").onchange=e=>{
+  const reader=new FileReader();
+  reader.onload=()=>{
+   const data=JSON.parse(reader.result);
+   projectName.value=data.name;
+   hoursPerDay.value=data.hoursPerDay;
+   data.tasks.forEach((t,i)=>{
+    document.getElementById(`${TASKS[i].id}_h`).value=t.h;
+    document.getElementById(`${TASKS[i].id}_r`).value=t.r;
+   });
   };
-
-  renderGantt();
+  reader.readAsText(e.target.files[0]);
+ };
 }
 
-function renderGantt(){
-  const g = document.getElementById("gantt");
-
-  g.innerHTML = "<h3>"+currentPlan.nombre+"</h3>";
-
-  currentPlan.tasks.forEach(t=>{
-    g.innerHTML += `<div>${t.name}</div><div class="bar" style="width:${t.days*50}px"></div>`;
-  });
+function sendEmail(){
+ const body="Plan proyecto: "+projectName.value;
+ window.location.href=`mailto:?subject=Planificacion&body=${encodeURIComponent(body)}`;
 }
 
-function savePlan(){
-  if(!currentPlan){alert("Genera primero");return;}
-
-  html2canvas(document.getElementById("gantt")).then(canvas=>{
-    currentPlan.image = canvas.toDataURL();
-
-    const plans = JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");
-    plans.push(currentPlan);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(plans));
-
-    renderHistory();
-  });
-}
-
-function renderHistory(){
-  const plans = JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");
-  const h = document.getElementById("history");
-
-  if(plans.length===0){
-    h.innerHTML="Sin datos";
-    return;
-  }
-
-  h.innerHTML = plans.map(p=>`
-    <div style="margin-bottom:10px;">
-      <b>${p.nombre}</b> (${p.fecha})
-      <br>
-      <img src="${p.image}" width="200">
-      <br>
-      <button onclick="load(${p.id})">Cargar</button>
-    </div>
-  `).join("");
-}
-
-function load(id){
-  const plans = JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");
-  const p = plans.find(x=>x.id===id);
-  currentPlan = p;
-  renderGantt();
-}
-
-function exportJSON(){
-  const plans = localStorage.getItem(STORAGE_KEY);
-  const blob = new Blob([plans],{type:"application/json"});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "planes.json";
-  a.click();
-}
-
-function importJSON(){
-  const input = document.createElement("input");
-  input.type="file";
-  input.onchange=e=>{
-    const file = e.target.files[0];
-    const reader = new FileReader();
-    reader.onload=()=>{
-      localStorage.setItem(STORAGE_KEY, reader.result);
-      renderHistory();
-    };
-    reader.readAsText(file);
-  };
-  input.click();
-}
-
-function sendMail(){
-  if(!currentPlan){alert("Genera primero");return;}
-
-  let body = `Proyecto: ${currentPlan.nombre}\nFecha: ${currentPlan.fecha}\n\n`;
-
-  currentPlan.tasks.forEach(t=>{
-    body += `${t.name} - ${t.days} días\n`;
-  });
-
-  window.location.href = `mailto:?subject=Plan ${currentPlan.nombre}&body=${encodeURIComponent(body)}`;
-}
-
-renderHistory();
-
+init();
 </script>
 
 </body>
