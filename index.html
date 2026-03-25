@@ -1,150 +1,228 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Planificador Gantt Pro</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Planificador Gantt PRO</title>
 
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <style>
-    body{font-family:'Inter',sans-serif;background:#0b1020;color:#fff;margin:0;padding:20px}
-    .container{max-width:1100px;margin:auto}
-    input,button{padding:8px;border-radius:8px;border:none;margin:4px}
-    input{background:#111;color:#fff;border:1px solid #333}
-    button{background:#6c5ce7;color:#fff;cursor:pointer}
-    button:hover{opacity:.9}
-    table{width:100%;border-collapse:collapse;margin-top:10px}
-    th,td{border-bottom:1px solid #333;padding:6px;text-align:left}
-    .gantt{margin-top:20px}
-    .bar{height:20px;background:#6c5ce7;border-radius:10px;margin:4px 0}
-  </style>
+<style>
+:root{
+  --bg:#0b1020;
+  --card:rgba(255,255,255,.06);
+  --text:#fff;
+  --muted:rgba(255,255,255,.6);
+  --primary:#7c5cff;
+}
+body{
+  margin:0;
+  font-family:'Inter',sans-serif;
+  background:linear-gradient(180deg,#070a14,#0b1020);
+  color:var(--text);
+}
+.container{max-width:1200px;margin:auto;padding:20px}
+.card{
+  background:var(--card);
+  border-radius:16px;
+  padding:16px;
+  margin-bottom:14px;
+  backdrop-filter:blur(12px);
+}
+h1{margin:0 0 10px;font-size:22px}
+input,button{
+  border-radius:10px;
+  padding:6px 8px;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(0,0,0,.25);
+  color:#fff;
+  font-size:12px;
+}
+
+input.small{
+  width:70px;
+  text-align:center;
+}
+
+input.medium{
+  width:120px;
+}
+
+input.project{
+  width:320px;
+  font-size:14px;
+  padding:8px 10px;
+}
+
+button{
+  background:var(--primary);
+  cursor:pointer;
+  font-weight:600;
+}
+button{
+  background:var(--primary);
+  cursor:pointer;
+  font-weight:600;
+}
+button:hover{opacity:.9}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+table{width:100%;border-collapse:collapse}
+th,td{padding:6px;border-bottom:1px solid rgba(255,255,255,.1)}
+.bar{
+  height:18px;
+  border-radius:999px;
+  background:linear-gradient(90deg,#7c5cff,#00e0a4);
+  margin:6px 0;
+  transition:.2s;
+}
+.bar:hover{transform:scale(1.03)}
+.kpi{display:flex;flex-direction:column}
+.kpi strong{font-size:18px}
+</style>
 </head>
 <body>
 <div class="container">
 
-<h1>📊 Planificador Gantt Pro</h1>
+<h1>🚀 Planificador Gantt PRO</h1>
 
-<input id="projectName" placeholder="Nombre del proyecto">
-<input id="hoursPerDay" type="number" value="8" min="1">
-
-<div>
-  <button onclick="generate()">Generar</button>
-  <button onclick="saveJSON()">Guardar</button>
-  <button onclick="loadJSON()">Cargar</button>
-  <button onclick="sendEmail()">Enviar</button>
-  <input type="file" id="fileInput" style="display:none">
+<div class="card">
+<input id="projectName" class="project" placeholder="Nombre del proyecto">
+<input id="hoursPerDay" class="small" type="number" value="8" min="1">
+<button onclick="generate()">Generar</button>
+<button onclick="saveJSON()">💾</button>
+<button onclick="loadJSON()">📂</button>
+<button onclick="exportEmail()">📧</button>
+<input type="file" id="fileInput" hidden>
 </div>
 
+<div class="grid">
+<div class="card">
+<h3>Datos</h3>
 <table>
 <thead>
 <tr><th>Fase</th><th>Horas</th><th>Recursos</th><th>Inicio</th><th>Fin</th></tr>
 </thead>
 <tbody id="tasks"></tbody>
 </table>
+</div>
 
+<div class="card">
+<h3>Resumen</h3>
+<div class="kpi">Total horas <strong id="totalHours">-</strong></div>
+<div class="kpi">Duración <strong id="totalDays">-</strong></div>
 <canvas id="chart"></canvas>
+</div>
+</div>
 
+<div class="card">
+<h3>Gantt</h3>
 <div id="gantt"></div>
+</div>
 
 </div>
 
 <script>
 const TASKS=[
- {id:"t1",name:"Desarrollo"},
- {id:"t2",name:"QA"},
- {id:"t3",name:"Testing"},
- {id:"t4",name:"Deploy"},
- {id:"t5",name:"Certificación"}
+{id:"t1",name:"Desarrollo"},
+{id:"t2",name:"QA"},
+{id:"t3",name:"Testing"},
+{id:"t4",name:"Deploy"},
+{id:"t5",name:"Certificación"}
 ];
 
 function init(){
- const tbody=document.getElementById("tasks");
- TASKS.forEach(t=>{
-  const tr=document.createElement("tr");
-  tr.innerHTML=`
-   <td>${t.name}</td>
-   <td><input id="${t.id}_h"></td>
-   <td><input id="${t.id}_r" value="1"></td>
-   <td><input id="${t.id}_s"></td>
-   <td><input id="${t.id}_e" readonly></td>`;
-  tbody.appendChild(tr);
- });
- flatpickr("#t1_s",{dateFormat:"Y-m-d"});
+const tbody=document.getElementById("tasks");
+TASKS.forEach(t=>{
+ const tr=document.createElement("tr");
+ tr.innerHTML=`
+ <td>${t.name}</td>
+ <td><input class="small" id="${t.id}_h"></td>
+ <td><input class="small" id="${t.id}_r" value="1"></td>
+ <td><input class="medium" id="${t.id}_s"></td>
+ <td><input id="${t.id}_e" readonly></td>`;
+ tbody.appendChild(tr);
+});
+flatpickr("#t1_s",{dateFormat:"Y-m-d"});
 }
 
 function generate(){
- let date=new Date(document.getElementById("t1_s").value);
- let hpd=Number(document.getElementById("hoursPerDay").value);
- let effort=[];
- let gantt="";
+let current=new Date(document.getElementById("t1_s").value);
+let hpd=Number(document.getElementById("hoursPerDay").value);
+let totalH=0;
+let totalD=0;
+let cumulative=[];
+let sum=0;
+let ganttHTML="";
 
- TASKS.forEach(t=>{
-  let h=Number(document.getElementById(`${t.id}_h`).value||0);
-  let r=Number(document.getElementById(`${t.id}_r`).value||1);
-  let days=Math.ceil(h/(hpd*r));
+TASKS.forEach(t=>{
+ let h=Number(document.getElementById(`${t.id}_h`).value||0);
+ let r=Number(document.getElementById(`${t.id}_r`).value||1);
+ let days=Math.ceil(h/(hpd*r));
 
-  let start=new Date(date);
-  let end=new Date(date);
-  end.setDate(end.getDate()+days);
+ let start=new Date(current);
+ let end=new Date(current);
+ end.setDate(end.getDate()+days);
 
-  document.getElementById(`${t.id}_s`).value=start.toISOString().split("T")[0];
-  document.getElementById(`${t.id}_e`).value=end.toISOString().split("T")[0];
+ document.getElementById(`${t.id}_s`).value=start.toISOString().split("T")[0];
+ document.getElementById(`${t.id}_e`).value=end.toISOString().split("T")[0];
 
-  effort.push(h);
+ totalH+=h;
+ totalD+=days;
+ sum+=h;
+ cumulative.push(sum);
 
-  gantt+=`<div>${t.name}<div class="bar" style="width:${days*40}px"></div></div>`;
+ ganttHTML+=`<div>${t.name}<div class="bar" style="width:${days*40}px"></div></div>`;
 
-  date=end;
- });
+ current=end;
+});
 
- document.getElementById("gantt").innerHTML="<h3>"+document.getElementById("projectName").value+"</h3>"+gantt;
+ document.getElementById("gantt").innerHTML=`<h4>${projectName.value}</h4>`+ganttHTML;
+ document.getElementById("totalHours").innerText=totalH+"h";
+ document.getElementById("totalDays").innerText=totalD+"d";
 
  new Chart(document.getElementById("chart"),{
-  type:"line",
-  data:{labels:TASKS.map(t=>t.name),datasets:[{data:effort}]}
+ type:"line",
+ data:{labels:TASKS.map(t=>t.name),datasets:[{label:"Esfuerzo acumulado",data:cumulative,fill:true}]}
  });
 }
 
 function saveJSON(){
- const data={
-  name:projectName.value,
-  hoursPerDay:hoursPerDay.value,
-  tasks:TASKS.map(t=>({
-   h:document.getElementById(`${t.id}_h`).value,
-   r:document.getElementById(`${t.id}_r`).value
-  }))
- };
- const blob=new Blob([JSON.stringify(data)],{type:"application/json"});
- const a=document.createElement("a");
- a.href=URL.createObjectURL(blob);
- a.download="plan.json";
- a.click();
+const data={name:projectName.value,hpd:hoursPerDay.value,tasks:TASKS.map(t=>({h:document.getElementById(`${t.id}_h`).value,r:document.getElementById(`${t.id}_r`).value}))};
+const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+const a=document.createElement("a");
+a.href=URL.createObjectURL(blob);
+a.download="plan.json";
+a.click();
 }
 
 function loadJSON(){
- document.getElementById("fileInput").click();
- document.getElementById("fileInput").onchange=e=>{
-  const reader=new FileReader();
-  reader.onload=()=>{
-   const data=JSON.parse(reader.result);
-   projectName.value=data.name;
-   hoursPerDay.value=data.hoursPerDay;
-   data.tasks.forEach((t,i)=>{
-    document.getElementById(`${TASKS[i].id}_h`).value=t.h;
-    document.getElementById(`${TASKS[i].id}_r`).value=t.r;
-   });
-  };
-  reader.readAsText(e.target.files[0]);
- };
+document.getElementById("fileInput").click();
+document.getElementById("fileInput").onchange=e=>{
+const reader=new FileReader();
+reader.onload=()=>{
+const data=JSON.parse(reader.result);
+projectName.value=data.name;
+hoursPerDay.value=data.hpd;
+data.tasks.forEach((t,i)=>{
+document.getElementById(`${TASKS[i].id}_h`).value=t.h;
+document.getElementById(`${TASKS[i].id}_r`).value=t.r;
+});
+};
+reader.readAsText(e.target.files[0]);
+};
 }
 
-function sendEmail(){
- const body="Plan proyecto: "+projectName.value;
- window.location.href=`mailto:?subject=Planificacion&body=${encodeURIComponent(body)}`;
+function exportEmail(){
+let html=`<h2>${projectName.value}</h2><table border='1'><tr><th>Fase</th><th>Días</th></tr>`;
+TASKS.forEach(t=>{
+html+=`<tr><td>${t.name}</td><td>${document.getElementById(`${t.id}_e`).value}</td></tr>`;
+});
+html+="</table>";
+navigator.clipboard.writeText(html);
+alert("Copiado para email ✔");
 }
 
 init();
