@@ -1,170 +1,792 @@
 <!doctype html>
 <html lang="es">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Planificador Gantt PRO</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gantt - Software (L–V, 8h/día, recursos, compacto)</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 
-<style>
-:root{
-  --bg:#0b1020;
-  --card:rgba(255,255,255,.06);
-  --text:#fff;
-  --muted:rgba(255,255,255,.6);
-  --primary:#7c5cff;
-}
-body{
-  margin:0;
-  font-family:'Inter',sans-serif;
-  background:linear-gradient(180deg,#070a14,#0b1020);
-  color:var(--text);
-}
-.container{max-width:1200px;margin:auto;padding:20px}
-.card{
-  background:var(--card);
-  border-radius:16px;
-  padding:16px;
-  margin-bottom:14px;
-  backdrop-filter:blur(12px);
-}
-h1{margin:0 0 10px;font-size:22px}
-input{
-  border-radius:10px;
-  padding:6px 8px;
-  border:1px solid rgba(255,255,255,.12);
-  background:rgba(0,0,0,.25);
-  color:#fff;
-  font-size:12px;
-}
-input.small{width:70px;text-align:center;}
-input.medium{width:120px;}
-input.project{width:320px;font-size:14px;padding:8px 10px;}
-button{
-  background:var(--primary);
-  border:none;
-  padding:8px 10px;
-  border-radius:10px;
-  color:#fff;
-  cursor:pointer;
-  font-weight:600;
-}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-table{width:100%;border-collapse:collapse}
-th,td{padding:6px;border-bottom:1px solid rgba(255,255,255,.1)}
-.bar{
-  height:18px;
-  border-radius:999px;
-  background:linear-gradient(90deg,#7c5cff,#00e0a4);
-  margin:6px 0;
-}
-</style>
+  <style>
+    :root{
+      --bg: #0b1020;
+      --card: rgba(255,255,255,.06);
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.68);
+      --border: rgba(255,255,255,.12);
+      --shadow: 0 16px 45px rgba(0,0,0,.45);
+      --radius: 16px;
+      --grid: rgba(255,255,255,.08);
+      --grid2: rgba(255,255,255,.12);
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      color: var(--text);
+      background:
+        radial-gradient(1000px 600px at 15% 10%, rgba(124,92,255,.32), transparent 60%),
+        radial-gradient(850px 480px at 85% 20%, rgba(46,229,157,.18), transparent 55%),
+        linear-gradient(180deg, #070a14 0%, var(--bg) 40%, #070a14 100%);
+      min-height: 100vh;
+      padding: 16px 12px 26px;
+    }
+
+    .container{max-width: 1120px; margin:0 auto; display:flex; flex-direction:column; gap:12px;}
+    header{display:flex; align-items:flex-start; justify-content:space-between; gap:10px; flex-wrap:wrap;}
+    .title{display:flex; flex-direction:column; gap:4px;}
+    .title h1{margin:0; font-size: 20px;}
+    .title p{margin:0; color: var(--muted); max-width: 860px; line-height: 1.25; font-size: 12.5px;}
+
+    .actions{display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end;}
+    .pill{
+      display:inline-flex; align-items:center; gap:6px;
+      padding: 5px 9px; border-radius: 999px; font-size: 11px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.18);
+      color: var(--muted);
+      white-space:nowrap;
+    }
+
+    .btn{
+      border:1px solid var(--border);
+      background: linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.04));
+      color: var(--text);
+      padding: 8px 11px;
+      border-radius: 11px;
+      cursor:pointer;
+      transition: transform .12s ease, border-color .12s ease;
+      box-shadow: 0 10px 25px rgba(0,0,0,.22);
+      font-weight: 800;
+      font-size: 12px;
+      display:flex; align-items:center; gap:7px;
+      user-select:none;
+    }
+    .btn:hover{ transform: translateY(-1px); border-color: rgba(255,255,255,.18); }
+    .btn.primary{ border-color: rgba(124,92,255,.45); background: linear-gradient(180deg, rgba(124,92,255,.33), rgba(124,92,255,.14)); }
+    .btn.ghost{ background: transparent; box-shadow:none; }
+
+    .card{
+      background: var(--card);
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .card .card-head{
+      padding: 10px 12px;
+      border-bottom:1px solid var(--border);
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+    }
+    .card .card-head .left{display:flex; flex-direction:column; gap:2px;}
+    .card .card-head h2{margin:0; font-size: 13px;}
+    .card .card-head small{color: var(--muted); font-size: 11.5px;}
+    .card .card-body{padding: 12px;}
+
+    .grid{display:grid; grid-template-columns: 1.25fr .75fr; gap:12px;}
+    @media (max-width: 980px){ .grid{grid-template-columns:1fr;} }
+
+    table{width:100%; border-collapse:collapse;}
+    th, td{
+      padding: 8px 6px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+      text-align:left;
+      font-size: 12px;
+      vertical-align: middle;
+    }
+    th{color: var(--muted); font-weight: 900; font-size: 11px; letter-spacing:.15px;}
+
+    .task-name{display:flex; align-items:center; gap:9px; min-width: 250px;}
+    .dot{width:9px; height:9px; border-radius:999px; flex:0 0 auto;}
+
+    .input{
+      width: 100%;
+      padding: 7px 8px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.18);
+      color: var(--text);
+      outline:none;
+      font-size: 12px;
+    }
+    .input:focus{ border-color: rgba(124,92,255,.55); box-shadow: 0 0 0 4px rgba(124,92,255,.12); }
+    .input[readonly]{opacity:.75; cursor:not-allowed;}
+
+    .error{
+      border:1px solid rgba(255,77,109,.45);
+      background: rgba(255,77,109,.10);
+      color: rgba(255,255,255,.88);
+      padding: 9px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      display:none;
+      margin-bottom: 8px;
+    }
+    .error.show{display:block;}
+
+    details.summary{
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: 14px;
+      background: rgba(0,0,0,.12);
+      overflow:hidden;
+    }
+    details.summary > summary{
+      cursor:pointer;
+      list-style:none;
+      padding: 10px 12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      user-select:none;
+      font-weight: 900;
+      font-size: 12.5px;
+      border-bottom:1px solid rgba(255,255,255,.10);
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+    }
+    details.summary > summary::-webkit-details-marker{display:none;}
+    .summary-body{padding: 10px 12px;}
+
+    .kpis{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+    .kpi{border:1px solid rgba(255,255,255,.12); border-radius: 14px; background: rgba(255,255,255,.05); padding: 10px;}
+    .kpi .label{color: var(--muted); font-size: 11px; margin-bottom: 5px;}
+    .kpi .value{font-size: 16px; font-weight: 900;}
+    .kpi .sub{color: var(--muted); font-size: 11px; margin-top: 4px;}
+
+    .gantt-wrap{width:100%; overflow:auto; padding-bottom: 6px;}
+    .gantt{min-width: 900px; border:1px solid rgba(255,255,255,.12); border-radius: 16px; overflow:hidden; background: rgba(0,0,0,.14);}
+    .gantt-header{display:grid; grid-template-columns: 260px 1fr; border-bottom:1px solid rgba(255,255,255,.10);}
+    .gantt-header .col-left{
+      padding: 10px 12px;
+      color: var(--muted);
+      font-size: 11px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      border-right:1px solid rgba(255,255,255,.10);
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+    }
+    .gantt-header .timeline{height: 42px; background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01));}
+    .gantt-header .ticks{display:flex; height:100%;}
+    .tick{
+      flex:1 1 auto;
+      border-left:1px solid var(--grid);
+      display:flex;
+      align-items:flex-end;
+      justify-content:flex-start;
+      padding: 0 7px 7px;
+      color: rgba(255,255,255,.55);
+      font-size: 10.5px;
+      white-space: nowrap;
+    }
+    .tick:first-child{border-left:none;}
+
+    .gantt-row{display:grid; grid-template-columns: 260px 1fr; border-bottom:1px solid rgba(255,255,255,.08);}
+    .gantt-row:last-child{border-bottom:none;}
+
+    .gantt-row .left{
+      padding: 10px 12px;
+      border-right:1px solid rgba(255,255,255,.10);
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+    .gantt-row .left .name{display:flex; align-items:center; gap:9px; font-weight: 900; font-size: 12px;}
+    .gantt-row .left .meta{color: var(--muted); font-size: 11px; display:flex; gap:8px; flex-wrap:wrap;}
+    .gantt-row .right{
+      position:relative;
+      height: 48px;
+      background: repeating-linear-gradient(
+        to right,
+        transparent 0,
+        transparent calc(12.5% - 1px),
+        rgba(255,255,255,.08) calc(12.5% - 1px),
+        rgba(255,255,255,.08) 12.5%
+      );
+    }
+
+    .bar{
+      position:absolute;
+      top:50%;
+      transform:translateY(-50%);
+      height: 20px;
+      border-radius: 999px;
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      padding: 0 9px;
+      font-size: 11px;
+      font-weight: 900;
+      color: rgba(255,255,255,.92);
+      border:1px solid rgba(255,255,255,.16);
+      box-shadow: 0 10px 22px rgba(0,0,0,.30);
+      overflow:hidden;
+      min-width: 42px;
+      backdrop-filter: blur(6px);
+    }
+    .bar::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: linear-gradient(90deg, rgba(255,255,255,.14), transparent 40%, rgba(255,255,255,.08));
+      pointer-events:none;
+    }
+    .bar .rightLabel{position:relative; z-index:1;}
+    .bar .rightLabel{
+      color: rgba(255,255,255,.88);
+      font-size: 10.5px;
+    }
+
+    canvas{width:100% !important; height: 180px !important;}
+  </style>
 </head>
+
 <body>
-<div class="container">
+  <div class="container">
+    <header>
+      <div class="title">
+        <h1>Planificación Solicitud de Cambio — Gantt</h1>
+        <p>
+          Ingresa <b>Horas</b> y <b>Recursos</b> por fase. Define <b>Fecha inicio</b> solo del Desarrollo.
+          Capacidad por fase = <b>8h × Recursos</b> (L–V). Si cabe en el día, se mantiene la misma fecha.
+        </p>
+      </div>
+      <div class="actions">
+        <span class="pill">🗓️ L–V</span>
+        <span class="pill">⏱️ 8h/día</span>
+        <span class="pill">👥 Recursos</span>
+        <button class="btn ghost" id="btnDemo" type="button">✨ Ejemplo</button>
+        <button class="btn" id="btnClear" type="button">🧹 Limpiar</button>
+        <button class="btn primary" id="btnGenerate" type="button">🚀 Generar</button>
+      </div>
+    </header>
 
-<h1>🚀 Planificador Gantt PRO</h1>
+    <div class="grid">
+      <section class="card">
+        <div class="card-head">
+          <div class="left">
+            <h2>1) Datos</h2>
+            <small>Horas + Recursos. Inicio solo para Desarrollo. Fechas auto por capacidad.</small>
+          </div>
+          <span class="pill">Auto-fechas</span>
+        </div>
 
-<div class="card">
-<input id="projectName" class="project" placeholder="Nombre del proyecto">
-<input id="hoursPerDay" class="small" type="number" value="8" min="1">
-<button onclick="generate()">Generar</button>
-</div>
+        <div class="card-body">
+          <div id="errorBox" class="error"></div>
 
-<div class="grid">
-<div class="card">
-<h3>Datos</h3>
-<table>
-<thead>
-<tr><th>Fase</th><th>Horas</th><th>Recursos</th><th>Inicio</th><th>Fin</th></tr>
-</thead>
-<tbody id="tasks"></tbody>
-</table>
-</div>
+          <table>
+            <thead>
+              <tr>
+                <th style="width:38%">Fase</th>
+                <th style="width:14%">Horas</th>
+                <th style="width:14%">Recursos</th>
+                <th style="width:17%">Inicio</th>
+                <th style="width:17%">Fin</th>
+              </tr>
+            </thead>
+            <tbody id="taskTableBody"></tbody>
+          </table>
 
-<div class="card">
-<h3>Resumen</h3>
-<div>Total horas: <strong id="totalHours">-</strong></div>
-<div>Duración: <strong id="totalDays">-</strong></div>
-<canvas id="chart"></canvas>
-</div>
-</div>
+          <div style="margin-top:8px;color:rgba(255,255,255,.55);font-size:11.5px;line-height:1.25;">
+            * Horas = esfuerzo total. Recursos = personas trabajando en esa fase.
+          </div>
+        </div>
+      </section>
 
-<div class="card">
-<h3>Gantt</h3>
-<div id="gantt"></div>
-</div>
+      <aside class="card">
+        <div class="card-head">
+          <div class="left">
+            <h2>2) Resumen</h2>
+            <small>Colapsable para que no ocupe pantalla.</small>
+          </div>
+          <span class="pill">Compacto</span>
+        </div>
 
-</div>
+        <div class="card-body" style="padding:0;">
+          <details class="summary" open>
+            <summary>
+              <span>📌 Ver KPIs y gráficas</span>
+              <span style="color:rgba(255,255,255,.55); font-weight:800;">(click para ocultar)</span>
+            </summary>
+            <div class="summary-body">
+              <div class="kpis">
+                <div class="kpi">
+                  <div class="label">Total horas</div>
+                  <div class="value" id="kpiHours">—</div>
+                  <div class="sub">Suma de horas</div>
+                </div>
+                <div class="kpi">
+                  <div class="label">Rango</div>
+                  <div class="value" id="kpiRange">—</div>
+                  <div class="sub">Inicio → Fin</div>
+                </div>
+                <div class="kpi">
+                  <div class="label">Duración total</div>
+                  <div class="value" id="kpiTotalDays">—</div>
+                  <div class="sub">Días hábiles</div>
+                </div>
+                <div class="kpi">
+                  <div class="label">Fase más larga</div>
+                  <div class="value" id="kpiLongest">—</div>
+                  <div class="sub" id="kpiLongestSub">—</div>
+                </div>
+              </div>
 
-<script>
-const TASKS=[
-{id:"t1",name:"Desarrollo"},
-{id:"t2",name:"QA"},
-{id:"t3",name:"Testing"},
-{id:"t4",name:"Deploy"},
-{id:"t5",name:"Certificación"}
-];
+              <div style="height:10px"></div>
+              <canvas id="chartHours"></canvas>
+              <div style="height:10px"></div>
+              <canvas id="chartDays"></canvas>
+            </div>
+          </details>
+        </div>
+      </aside>
+    </div>
 
-function init(){
-const tbody=document.getElementById("tasks");
-TASKS.forEach(t=>{
- const tr=document.createElement("tr");
- tr.innerHTML=`
- <td>${t.name}</td>
- <td><input class="small" id="${t.id}_h"></td>
- <td><input class="small" id="${t.id}_r" value="1"></td>
- <td><input class="medium" id="${t.id}_s"></td>
- <td><input class="medium" id="${t.id}_e" readonly></td>`;
- tbody.appendChild(tr);
-});
-flatpickr("#t1_s",{dateFormat:"Y-m-d"});
-}
+    <section class="card">
+      <div class="card-head">
+        <div class="left">
+          <h2>3) Gantt (compacto)</h2>
+          <small>Barras por días hábiles. Sin detalle de horas visible en la barra.</small>
+        </div>
+        <span class="pill">Timeline</span>
+      </div>
+      <div class="card-body">
+        <div class="gantt-wrap">
+          <div class="gantt" id="gantt"></div>
+        </div>
+      </div>
+    </section>
+  </div>
 
-function generate(){
-let current=new Date(document.getElementById("t1_s").value);
-let hpd=Number(document.getElementById("hoursPerDay").value);
-let totalH=0,totalD=0;
-let cumulative=[],sum=0,ganttHTML="";
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-TASKS.forEach(t=>{
- let h=Number(document.getElementById(`${t.id}_h`).value||0);
- let r=Number(document.getElementById(`${t.id}_r`).value||1);
- let days=Math.ceil(h/(hpd*r));
+  <script>
+    const BASE_HOURS_PER_PERSON_PER_DAY = 8;
 
- let start=new Date(current);
- let end=new Date(current);
- end.setDate(end.getDate()+days);
+    const TASKS = [
+      { id: "t1", name: "Desarrollo de la solicitud de Cambio", colorA: "rgba(124,92,255,.55)", colorB: "rgba(124,92,255,.20)" },
+      { id: "t2", name: "Instalación en QA GEOCOM",             colorA: "rgba(46,229,157,.50)", colorB: "rgba(46,229,157,.18)" },
+      { id: "t3", name: "Testing de la Solicitud de Cambio",     colorA: "rgba(255,183,3,.45)",  colorB: "rgba(255,183,3,.15)" },
+      { id: "t4", name: "Subida a bucket de Femsa",              colorA: "rgba(59,130,246,.45)", colorB: "rgba(59,130,246,.16)" },
+      { id: "t5", name: "Liberación a Certificación Chile",      colorA: "rgba(255,77,109,.45)", colorB: "rgba(255,77,109,.16)" },
+    ];
 
- document.getElementById(`${t.id}_s`).value=start.toISOString().split("T")[0];
- document.getElementById(`${t.id}_e`).value=end.toISOString().split("T")[0];
+    const elBody = document.getElementById("taskTableBody");
+    const elError = document.getElementById("errorBox");
+    const elGantt = document.getElementById("gantt");
 
- totalH+=h;
- totalD+=days;
- sum+=h;
- cumulative.push(sum);
+    const kpiHours = document.getElementById("kpiHours");
+    const kpiRange = document.getElementById("kpiRange");
+    const kpiTotalDays = document.getElementById("kpiTotalDays");
+    const kpiLongest = document.getElementById("kpiLongest");
+    const kpiLongestSub = document.getElementById("kpiLongestSub");
 
- ganttHTML+=`<div>${t.name}<div class="bar" style="width:${days*40}px"></div></div>`;
+    let fpInstances = [];
+    let chartHours = null;
+    let chartDays = null;
 
- current=end;
-});
+    function pad2(n){ return String(n).padStart(2, "0"); }
+    function fmtDate(d){ return d ? `${pad2(d.getDate())}/${pad2(d.getMonth()+1)}/${d.getFullYear()}` : "—"; }
+    function toISODate(d){ return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
+    function parseISODate(s){
+      if(!s) return null;
+      const [y,m,dd] = s.split("-").map(Number);
+      if(!y || !m || !dd) return null;
+      return new Date(y, m-1, dd, 12, 0, 0);
+    }
 
-document.getElementById("gantt").innerHTML=`<h4>${projectName.value}</h4>`+ganttHTML;
-document.getElementById("totalHours").innerText=totalH+"h";
-document.getElementById("totalDays").innerText=totalD+"d";
+    function isWeekend(date){
+      const day = date.getDay();
+      return day === 0 || day === 6;
+    }
+    function addDays(date, n){
+      const d = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0);
+      d.setDate(d.getDate() + n);
+      return d;
+    }
+    function normalizeToBusinessDay(date){
+      let d = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0);
+      while(isWeekend(d)) d = addDays(d, 1);
+      return d;
+    }
+    function nextBusinessDay(date){
+      let d = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0);
+      do { d = addDays(d, 1); } while(isWeekend(d));
+      return d;
+    }
 
-new Chart(document.getElementById("chart"),{
- type:"line",
- data:{labels:TASKS.map(t=>t.name),datasets:[{label:"Esfuerzo acumulado",data:cumulative,fill:true}]}
-});
-}
+    function businessDaysInclusive(a, b){
+      const A = new Date(a.getFullYear(), a.getMonth(), a.getDate(), 12, 0, 0);
+      const B = new Date(b.getFullYear(), b.getMonth(), b.getDate(), 12, 0, 0);
+      if(A > B) return 0;
+      let count = 0;
+      for(let d = new Date(A); d <= B; d = addDays(d, 1)){
+        if(!isWeekend(d)) count++;
+      }
+      return count;
+    }
 
-init();
-</script>
+    function businessDayOffset(min, target){
+      const days = businessDaysInclusive(min, target);
+      return Math.max(0, days - 1);
+    }
 
+    function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
+
+    function showError(msg){ elError.textContent = msg; elError.classList.add("show"); }
+    function clearError(){ elError.textContent = ""; elError.classList.remove("show"); }
+
+    function renderInputs(){
+      elBody.innerHTML = "";
+      fpInstances.forEach(fp => fp.destroy && fp.destroy());
+      fpInstances = [];
+
+      TASKS.forEach((t, idx) => {
+        const tr = document.createElement("tr");
+
+        const tdName = document.createElement("td");
+        tdName.innerHTML = `
+          <div class="task-name">
+            <span class="dot" style="background:${t.colorA}; box-shadow:0 0 0 3px ${t.colorB};"></span>
+            <div>
+              <div style="font-weight:900; font-size:12px;">${t.name}</div>
+              <div style="color:rgba(255,255,255,.55); font-size:11px; margin-top:2px;">Fase ${idx+1}</div>
+            </div>
+          </div>
+        `;
+
+        const tdHours = document.createElement("td");
+        tdHours.innerHTML = `<input class="input" inputmode="decimal" placeholder="Ej: 195" id="${t.id}_hours" />`;
+
+        const tdRes = document.createElement("td");
+        tdRes.innerHTML = `<input class="input" inputmode="numeric" placeholder="1" value="1" id="${t.id}_res" />`;
+
+        const tdStart = document.createElement("td");
+        const tdEnd = document.createElement("td");
+
+        if(t.id === "t1"){
+          tdStart.innerHTML = `<input class="input date" placeholder="Seleccionar" id="${t.id}_start" />`;
+          tdEnd.innerHTML   = `<input class="input" readonly placeholder="Auto" id="${t.id}_end" />`;
+        }else{
+          tdStart.innerHTML = `<input class="input" readonly placeholder="Auto" id="${t.id}_start" />`;
+          tdEnd.innerHTML   = `<input class="input" readonly placeholder="Auto" id="${t.id}_end" />`;
+        }
+
+        tr.appendChild(tdName);
+        tr.appendChild(tdHours);
+        tr.appendChild(tdRes);
+        tr.appendChild(tdStart);
+        tr.appendChild(tdEnd);
+        elBody.appendChild(tr);
+      });
+
+      const inp = document.getElementById("t1_start");
+      const fp = flatpickr(inp, {
+        dateFormat: "Y-m-d",
+        allowInput: true,
+        disableMobile: true,
+        disable: [(date) => (date.getDay() === 0 || date.getDay() === 6)]
+      });
+      fpInstances.push(fp);
+    }
+
+    function scheduleByCapacity(currentDate, usedFraction, hours, resources){
+      if(hours <= 0) return { startDate:null, endDate:null, nextDate: currentDate, nextUsedFraction: usedFraction };
+
+      const res = Math.max(1, Math.floor(resources));
+      const dayCapacityHours = BASE_HOURS_PER_PERSON_PER_DAY * res;
+
+      let remainingFrac = hours / dayCapacityHours;
+
+      let date = normalizeToBusinessDay(currentDate);
+      let used = usedFraction;
+
+      const startDate = date;
+      let endDate = date;
+
+      while(remainingFrac > 1e-9){
+        if(isWeekend(date)){
+          date = normalizeToBusinessDay(date);
+          used = 0;
+        }
+
+        const capacityLeftFrac = 1 - used;
+
+        if(remainingFrac <= capacityLeftFrac + 1e-12){
+          used = used + remainingFrac;
+          remainingFrac = 0;
+          endDate = date;
+        } else {
+          remainingFrac -= capacityLeftFrac;
+          used = 1;
+          endDate = date;
+
+          date = nextBusinessDay(date);
+          used = 0;
+        }
+      }
+
+      let nextDate = endDate;
+      let nextUsed = used;
+
+      if(nextUsed >= 1 - 1e-12){
+        nextDate = nextBusinessDay(endDate);
+        nextUsed = 0;
+      }
+
+      return { startDate, endDate, nextDate, nextUsedFraction: nextUsed };
+    }
+
+    function readAndComputeTasks(){
+      const tasks = TASKS.map(t => {
+        const hoursRaw = document.getElementById(`${t.id}_hours`).value.trim();
+        const resRaw = document.getElementById(`${t.id}_res`).value.trim();
+
+        const hours = hoursRaw === "" ? 0 : Number(hoursRaw.replace(",", "."));
+        const resources = resRaw === "" ? 1 : Number(resRaw);
+
+        if(Number.isNaN(hours) || hours < 0) throw new Error(`En "${t.name}" las horas deben ser un número válido (>= 0).`);
+        if(Number.isNaN(resources) || resources < 1) throw new Error(`En "${t.name}" recursos debe ser >= 1.`);
+
+        return { ...t, hours, resources: Math.floor(resources) };
+      });
+
+      const startDevRaw = (document.getElementById("t1_start").value || "").trim();
+      const startDev = parseISODate(startDevRaw);
+      if(!startDev) throw new Error('Debes seleccionar la "Fecha inicio" del Desarrollo.');
+
+      if(tasks[0].hours <= 0) throw new Error('Debes ingresar "Horas" (>0) para el Desarrollo.');
+
+      let currentDate = normalizeToBusinessDay(startDev);
+      let usedFraction = 0;
+
+      for(const t of tasks){
+        if(t.hours <= 0){
+          t.start = null; t.end = null;
+          continue;
+        }
+
+        const sch = scheduleByCapacity(currentDate, usedFraction, t.hours, t.resources);
+        t.start = sch.startDate;
+        t.end = sch.endDate;
+
+        currentDate = sch.nextDate;
+        usedFraction = sch.nextUsedFraction;
+      }
+
+      document.getElementById("t1_end").value = tasks[0].end ? toISODate(tasks[0].end) : "";
+      for(let i=1;i<tasks.length;i++){
+        const t = tasks[i];
+        document.getElementById(`${t.id}_start`).value = t.start ? toISODate(t.start) : "";
+        document.getElementById(`${t.id}_end`).value   = t.end   ? toISODate(t.end)   : "";
+      }
+
+      return tasks;
+    }
+
+    function renderGantt(tasks){
+      const withDates = tasks.filter(t => t.start && t.end);
+      if(withDates.length === 0) throw new Error("No hay fases con fechas para dibujar.");
+
+      const min = withDates.reduce((a,t) => t.start < a ? t.start : a, withDates[0].start);
+      const max = withDates.reduce((a,t) => t.end   > a ? t.end   : a, withDates[0].end);
+
+      const totalBizDays = businessDaysInclusive(min, max);
+      if(totalBizDays <= 0) throw new Error("El rango calculado no tiene días hábiles.");
+
+      const TICKS = 8;
+
+      const header = document.createElement("div");
+      header.className = "gantt-header";
+
+      const colLeft = document.createElement("div");
+      colLeft.className = "col-left";
+      colLeft.innerHTML = `
+        <div>Fase</div>
+        <div style="color:rgba(255,255,255,.55); font-size:10.5px;">Rango: ${fmtDate(min)} → ${fmtDate(max)}</div>
+      `;
+
+      const timeline = document.createElement("div");
+      timeline.className = "timeline";
+      const ticks = document.createElement("div");
+      ticks.className = "ticks";
+
+      for(let i=0;i<TICKS;i++){
+        const tick = document.createElement("div");
+        tick.className = "tick";
+        const ratio = (TICKS === 1) ? 0 : i/(TICKS-1);
+        const bizOffset = Math.round((totalBizDays-1) * ratio);
+
+        let d = new Date(min.getFullYear(), min.getMonth(), min.getDate(), 12, 0, 0);
+        let seen = 0;
+        while(seen < bizOffset){
+          d = addDays(d, 1);
+          if(!isWeekend(d)) seen++;
+        }
+        tick.textContent = fmtDate(d);
+        ticks.appendChild(tick);
+      }
+      timeline.appendChild(ticks);
+
+      header.appendChild(colLeft);
+      header.appendChild(timeline);
+
+      const rowsFrag = document.createDocumentFragment();
+
+      withDates.forEach(t => {
+        const dBiz = businessDaysInclusive(t.start, t.end);
+        const startOffsetBiz = businessDayOffset(min, t.start);
+        const leftPct = (startOffsetBiz / totalBizDays) * 100;
+        const widthPct = (dBiz / totalBizDays) * 100;
+
+        const row = document.createElement("div");
+        row.className = "gantt-row";
+
+        const left = document.createElement("div");
+        left.className = "left";
+        left.innerHTML = `
+          <div class="name">
+            <span class="dot" style="background:${t.colorA}; box-shadow:0 0 0 3px ${t.colorB};"></span>
+            <span>${t.name}</span>
+          </div>
+          <div class="meta">
+            <span class="pill">📅 ${fmtDate(t.start)} → ${fmtDate(t.end)}</span>
+            <span class="pill">🗓️ ${dBiz}d</span>
+          </div>
+        `;
+
+        const right = document.createElement("div");
+        right.className = "right";
+
+        const bar = document.createElement("div");
+        bar.className = "bar";
+        bar.style.left = `${clamp(leftPct, 0, 100)}%`;
+        bar.style.width = `${clamp(widthPct, 0.6, 100)}%`;
+        bar.style.background = `linear-gradient(90deg, ${t.colorA}, ${t.colorB})`;
+
+        const rightLabel = document.createElement("div");
+        rightLabel.className = "rightLabel";
+        rightLabel.textContent = `${dBiz}d`;
+
+        bar.appendChild(rightLabel);
+        right.appendChild(bar);
+
+        row.appendChild(left);
+        row.appendChild(right);
+        rowsFrag.appendChild(row);
+      });
+
+      elGantt.innerHTML = "";
+      elGantt.appendChild(header);
+      elGantt.appendChild(rowsFrag);
+
+      return { min, max, totalBizDays };
+    }
+
+    function updateKPIsAndCharts(tasks, rangeInfo){
+      const withDates = tasks.filter(t => t.start && t.end);
+
+      const totalHours = tasks.reduce((sum,t)=> sum + (t.hours || 0), 0);
+      kpiHours.textContent = totalHours ? `${String(totalHours).replace(/\.0$/, "")} h` : "—";
+      kpiRange.textContent = `${fmtDate(rangeInfo.min)} → ${fmtDate(rangeInfo.max)}`;
+      kpiTotalDays.textContent = `${rangeInfo.totalBizDays} d`;
+
+      let longest = null;
+      for(const t of withDates){
+        const d = businessDaysInclusive(t.start, t.end);
+        if(!longest || d > longest.days) longest = { name: t.name, days: d };
+      }
+      kpiLongest.textContent = longest ? `${longest.days} d` : "—";
+      kpiLongestSub.textContent = longest ? longest.name : "—";
+
+      const labels = TASKS.map(t => t.name);
+      const hoursData = TASKS.map(t => (tasks.find(x=>x.id===t.id)?.hours ?? 0));
+      const daysData  = TASKS.map(t => {
+        const f = tasks.find(x=>x.id===t.id);
+        return (f && f.start && f.end) ? businessDaysInclusive(f.start,f.end) : 0;
+      });
+
+      if(chartHours) chartHours.destroy();
+      if(chartDays) chartDays.destroy();
+
+      chartHours = new Chart(document.getElementById("chartHours"), {
+        type: "bar",
+        data: { labels, datasets: [{ label: "Horas", data: hoursData, borderWidth: 1 }] },
+        options: {
+          responsive:true, maintainAspectRatio:false,
+          plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:(ctx)=>` ${ctx.raw} h` } } },
+          scales:{
+            x:{ ticks:{ color:"rgba(255,255,255,.72)", font:{size:10} }, grid:{ color:"rgba(255,255,255,.08)" } },
+            y:{ beginAtZero:true, ticks:{ color:"rgba(255,255,255,.72)", font:{size:10} }, grid:{ color:"rgba(255,255,255,.08)" } }
+          }
+        }
+      });
+
+      chartDays = new Chart(document.getElementById("chartDays"), {
+        type: "doughnut",
+        data: { labels, datasets: [{ label: "Días (L–V)", data: daysData, borderWidth: 1 }] },
+        options: {
+          responsive:true, maintainAspectRatio:false,
+          plugins:{
+            legend:{ position:"bottom", labels:{ color:"rgba(255,255,255,.72)", boxWidth:12, font:{size:10} } },
+            tooltip:{ callbacks:{ label:(ctx)=>` ${ctx.label}: ${ctx.raw} día(s)` } }
+          }
+        }
+      });
+    }
+
+    document.getElementById("btnGenerate").addEventListener("click", () => {
+      try{
+        clearError();
+        const tasks = readAndComputeTasks();
+        const rangeInfo = renderGantt(tasks);
+        updateKPIsAndCharts(tasks, rangeInfo);
+      }catch(e){
+        showError(e.message || String(e));
+      }
+    });
+
+    document.getElementById("btnClear").addEventListener("click", () => {
+      clearError();
+      TASKS.forEach(t => {
+        document.getElementById(`${t.id}_hours`).value = "";
+        document.getElementById(`${t.id}_res`).value = "1";
+        const s = document.getElementById(`${t.id}_start`);
+        const e = document.getElementById(`${t.id}_end`);
+        if(s) s.value = "";
+        if(e) e.value = "";
+      });
+      elGantt.innerHTML = "";
+      if(chartHours) chartHours.destroy();
+      if(chartDays) chartDays.destroy();
+      chartHours = null; chartDays = null;
+
+      kpiHours.textContent = "—";
+      kpiRange.textContent = "—";
+      kpiTotalDays.textContent = "—";
+      kpiLongest.textContent = "—";
+      kpiLongestSub.textContent = "—";
+    });
+
+    document.getElementById("btnDemo").addEventListener("click", () => {
+      clearError();
+
+      document.getElementById("t1_start").value = "2026-02-02";
+
+      document.getElementById("t1_hours").value = 195; document.getElementById("t1_res").value = 2;
+      document.getElementById("t2_hours").value = 3;   document.getElementById("t2_res").value = 1;
+      document.getElementById("t3_hours").value = 65;  document.getElementById("t3_res").value = 2;
+      document.getElementById("t4_hours").value = 1;   document.getElementById("t4_res").value = 1;
+      document.getElementById("t5_hours").value = 1;   document.getElementById("t5_res").value = 1;
+
+      document.getElementById("btnGenerate").click();
+    });
+
+    renderInputs();
+  </script>
 </body>
 </html>
