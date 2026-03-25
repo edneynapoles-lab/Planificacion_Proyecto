@@ -254,7 +254,10 @@
           Capacidad por fase = <b>8h × Recursos</b> (L–V). Si cabe en el día, se mantiene la misma fecha.
         </p>
       </div>
-      <div class="actions">
+      <div style="margin-bottom:10px;">
+        <input id="projectName" placeholder="Nombre del proyecto" style="padding:6px;border-radius:8px;border:1px solid #ccc;">
+    </div>
+    <div class="actions">
         <span class="pill">🗓️ L–V</span>
         <span class="pill">⏱️ 8h/día</span>
         <span class="pill">👥 Recursos</span>
@@ -262,6 +265,7 @@
         <button class="btn" id="btnClear" type="button">🧹 Limpiar</button>
         <button class="btn" id="btnSave" type="button">💾 Guardar</button>
         <button class="btn" id="btnLoadLast" type="button">📂 Último</button>
+        <button class="btn" id="btnExport" type="button">⬇️ Exportar</button>
         <button class="btn primary" id="btnGenerate" type="button">🚀 Generar</button>
       </div>
     </header>
@@ -472,6 +476,107 @@ document.getElementById("btnLoadLast").addEventListener("click", () => {
 // cargar historial al iniciar
 setTimeout(renderPlanList, 300);
 
+
+// =========================
+// PROYECTO + EXPORT + MAIL + OUTLOOK
+// =========================
+
+function getProjectName(){
+  return document.getElementById("projectName").value || "Sin nombre";
+}
+
+function savePlan(){
+  const plans = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+
+  plans.push({
+    id: Date.now(),
+    nombre: getProjectName(),
+    fecha: new Date().toLocaleString(),
+    data: getFormData()
+  });
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(plans));
+  renderPlanList();
+  alert("Plan guardado correctamente");
+}
+
+function renderPlanList(){
+  const el = document.getElementById("planList");
+  if(!el) return;
+
+  const plans = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+
+  if(plans.length === 0){
+    el.innerHTML = "<small>No hay planes guardados</small>";
+    return;
+  }
+
+  el.innerHTML = plans.map(p => `
+    <div style="margin-bottom:8px; display:flex; justify-content:space-between;">
+      <span><b>${p.nombre}</b> - ${p.fecha}</span>
+      <div>
+        <button onclick="loadPlan(${p.id})">📂</button>
+        <button onclick="exportPlan(${p.id})">⬇️</button>
+        <button onclick="sendMail(${p.id})">📧</button>
+        <button onclick="addToOutlook(${p.id})">📅</button>
+        <button onclick="deletePlan(${p.id})">🗑️</button>
+      </div>
+    </div>
+  `).join("");
+}
+
+function exportPlan(id){
+  const plans = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  const plan = plans.find(p => p.id === id);
+
+  const blob = new Blob([JSON.stringify(plan, null, 2)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = (plan.nombre || "plan") + ".json";
+  a.click();
+}
+
+function sendMail(id){
+  const plans = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  const plan = plans.find(p => p.id === id);
+
+  let body = "Proyecto: " + plan.nombre + "\nFecha: " + plan.fecha + "\n\n";
+
+  Object.keys(plan.data).forEach(k=>{
+    const t = plan.data[k];
+    body += `${k}: ${t.hours}h, ${t.res} recursos (${t.start} - ${t.end})\n`;
+  });
+
+  const subject = encodeURIComponent("Plan Gantt - " + plan.nombre);
+  const bodyEnc = encodeURIComponent(body);
+
+  window.location.href = `mailto:?subject=${subject}&body=${bodyEnc}`;
+}
+
+function addToOutlook(id){
+  const plans = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  const plan = plans.find(p => p.id === id);
+
+  const first = Object.values(plan.data)[0];
+  const start = first.start.replace(/-/g,"") + "T090000";
+  const end = first.end.replace(/-/g,"") + "T180000";
+
+  const url = `https://outlook.office.com/calendar/0/deeplink/compose?subject=${encodeURIComponent(plan.nombre)}&startdt=${start}&enddt=${end}`;
+
+  window.open(url, "_blank");
+}
+
+document.getElementById("btnExport").addEventListener("click", ()=>{
+  const plans = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  if(plans.length === 0){
+    alert("No hay planes");
+    return;
+  }
+  exportPlan(plans[plans.length-1].id);
+});
+
 </script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js">
 // =========================
@@ -571,6 +676,107 @@ document.getElementById("btnLoadLast").addEventListener("click", () => {
 
 // cargar historial al iniciar
 setTimeout(renderPlanList, 300);
+
+
+// =========================
+// PROYECTO + EXPORT + MAIL + OUTLOOK
+// =========================
+
+function getProjectName(){
+  return document.getElementById("projectName").value || "Sin nombre";
+}
+
+function savePlan(){
+  const plans = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+
+  plans.push({
+    id: Date.now(),
+    nombre: getProjectName(),
+    fecha: new Date().toLocaleString(),
+    data: getFormData()
+  });
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(plans));
+  renderPlanList();
+  alert("Plan guardado correctamente");
+}
+
+function renderPlanList(){
+  const el = document.getElementById("planList");
+  if(!el) return;
+
+  const plans = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+
+  if(plans.length === 0){
+    el.innerHTML = "<small>No hay planes guardados</small>";
+    return;
+  }
+
+  el.innerHTML = plans.map(p => `
+    <div style="margin-bottom:8px; display:flex; justify-content:space-between;">
+      <span><b>${p.nombre}</b> - ${p.fecha}</span>
+      <div>
+        <button onclick="loadPlan(${p.id})">📂</button>
+        <button onclick="exportPlan(${p.id})">⬇️</button>
+        <button onclick="sendMail(${p.id})">📧</button>
+        <button onclick="addToOutlook(${p.id})">📅</button>
+        <button onclick="deletePlan(${p.id})">🗑️</button>
+      </div>
+    </div>
+  `).join("");
+}
+
+function exportPlan(id){
+  const plans = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  const plan = plans.find(p => p.id === id);
+
+  const blob = new Blob([JSON.stringify(plan, null, 2)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = (plan.nombre || "plan") + ".json";
+  a.click();
+}
+
+function sendMail(id){
+  const plans = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  const plan = plans.find(p => p.id === id);
+
+  let body = "Proyecto: " + plan.nombre + "\nFecha: " + plan.fecha + "\n\n";
+
+  Object.keys(plan.data).forEach(k=>{
+    const t = plan.data[k];
+    body += `${k}: ${t.hours}h, ${t.res} recursos (${t.start} - ${t.end})\n`;
+  });
+
+  const subject = encodeURIComponent("Plan Gantt - " + plan.nombre);
+  const bodyEnc = encodeURIComponent(body);
+
+  window.location.href = `mailto:?subject=${subject}&body=${bodyEnc}`;
+}
+
+function addToOutlook(id){
+  const plans = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  const plan = plans.find(p => p.id === id);
+
+  const first = Object.values(plan.data)[0];
+  const start = first.start.replace(/-/g,"") + "T090000";
+  const end = first.end.replace(/-/g,"") + "T180000";
+
+  const url = `https://outlook.office.com/calendar/0/deeplink/compose?subject=${encodeURIComponent(plan.nombre)}&startdt=${start}&enddt=${end}`;
+
+  window.open(url, "_blank");
+}
+
+document.getElementById("btnExport").addEventListener("click", ()=>{
+  const plans = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  if(plans.length === 0){
+    alert("No hay planes");
+    return;
+  }
+  exportPlan(plans[plans.length-1].id);
+});
 
 </script>
 
@@ -1095,6 +1301,107 @@ document.getElementById("btnLoadLast").addEventListener("click", () => {
 
 // cargar historial al iniciar
 setTimeout(renderPlanList, 300);
+
+
+// =========================
+// PROYECTO + EXPORT + MAIL + OUTLOOK
+// =========================
+
+function getProjectName(){
+  return document.getElementById("projectName").value || "Sin nombre";
+}
+
+function savePlan(){
+  const plans = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+
+  plans.push({
+    id: Date.now(),
+    nombre: getProjectName(),
+    fecha: new Date().toLocaleString(),
+    data: getFormData()
+  });
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(plans));
+  renderPlanList();
+  alert("Plan guardado correctamente");
+}
+
+function renderPlanList(){
+  const el = document.getElementById("planList");
+  if(!el) return;
+
+  const plans = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+
+  if(plans.length === 0){
+    el.innerHTML = "<small>No hay planes guardados</small>";
+    return;
+  }
+
+  el.innerHTML = plans.map(p => `
+    <div style="margin-bottom:8px; display:flex; justify-content:space-between;">
+      <span><b>${p.nombre}</b> - ${p.fecha}</span>
+      <div>
+        <button onclick="loadPlan(${p.id})">📂</button>
+        <button onclick="exportPlan(${p.id})">⬇️</button>
+        <button onclick="sendMail(${p.id})">📧</button>
+        <button onclick="addToOutlook(${p.id})">📅</button>
+        <button onclick="deletePlan(${p.id})">🗑️</button>
+      </div>
+    </div>
+  `).join("");
+}
+
+function exportPlan(id){
+  const plans = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  const plan = plans.find(p => p.id === id);
+
+  const blob = new Blob([JSON.stringify(plan, null, 2)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = (plan.nombre || "plan") + ".json";
+  a.click();
+}
+
+function sendMail(id){
+  const plans = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  const plan = plans.find(p => p.id === id);
+
+  let body = "Proyecto: " + plan.nombre + "\nFecha: " + plan.fecha + "\n\n";
+
+  Object.keys(plan.data).forEach(k=>{
+    const t = plan.data[k];
+    body += `${k}: ${t.hours}h, ${t.res} recursos (${t.start} - ${t.end})\n`;
+  });
+
+  const subject = encodeURIComponent("Plan Gantt - " + plan.nombre);
+  const bodyEnc = encodeURIComponent(body);
+
+  window.location.href = `mailto:?subject=${subject}&body=${bodyEnc}`;
+}
+
+function addToOutlook(id){
+  const plans = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  const plan = plans.find(p => p.id === id);
+
+  const first = Object.values(plan.data)[0];
+  const start = first.start.replace(/-/g,"") + "T090000";
+  const end = first.end.replace(/-/g,"") + "T180000";
+
+  const url = `https://outlook.office.com/calendar/0/deeplink/compose?subject=${encodeURIComponent(plan.nombre)}&startdt=${start}&enddt=${end}`;
+
+  window.open(url, "_blank");
+}
+
+document.getElementById("btnExport").addEventListener("click", ()=>{
+  const plans = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  if(plans.length === 0){
+    alert("No hay planes");
+    return;
+  }
+  exportPlan(plans[plans.length-1].id);
+});
 
 </script>
 </body>
