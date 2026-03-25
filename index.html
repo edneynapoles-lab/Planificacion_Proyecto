@@ -244,113 +244,169 @@
   </style>
 
 <script src="https://cdn.jsdelivr.net/npm/html2canvas">
-// ====== PROJECT NAME ======
-function getProjectName(){
-  return document.getElementById("projectName")?.value || "Sin nombre";
+const STORAGE_KEY="gantt_planes_final";
+
+// SAVE
+function savePlan(){
+  const tasks = readAndComputeTasks();
+  const plans = JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");
+
+  plans.push({
+    id:Date.now(),
+    nombre:document.getElementById("projectName").value||"Sin nombre",
+    fecha:new Date().toLocaleString(),
+    data:getFormData()
+  });
+
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(plans));
+  renderPlanList();
+  alert("Guardado OK");
+  document.getElementById("projectName").value="";
 }
 
-// ====== MAIL REPORT ======
-document.getElementById("btnMail").addEventListener("click", ()=>{
+// HISTORY UI
+function renderPlanList(){
+  const el=document.getElementById("planList");
+  const plans=JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");
+
+  if(plans.length===0){el.innerHTML="Sin planes";return;}
+
+  el.innerHTML=plans.map(p=>`
+  <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+    <span><b>${p.nombre}</b> - ${p.fecha}</span>
+    <div>
+      <button onclick="loadPlan(${p.id})" title="Cargar">📂</button>
+      <button onclick="deletePlan(${p.id})" title="Eliminar">🗑️</button>
+    </div>
+  </div>`).join("");
+}
+
+function loadPlan(id){
+  const plans=JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");
+  const plan=plans.find(p=>p.id===id);
+  setFormData(plan.data);
+  setTimeout(()=>document.getElementById("btnGenerate").click(),200);
+}
+
+function deletePlan(id){
+  let plans=JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");
+  plans=plans.filter(p=>p.id!==id);
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(plans));
+  renderPlanList();
+}
+
+// MAIL
+document.getElementById("btnMail").onclick=()=>{
   try{
-    const tasks = readAndComputeTasks();
-    let body = "PLANIFICACIÓN\n\n";
-    body += "Proyecto: " + getProjectName() + "\n\n";
-
+    const tasks=readAndComputeTasks();
+    let body="Proyecto: "+(document.getElementById("projectName").value||"")+"\n\n";
     tasks.forEach(t=>{
-      if(!t.start) return;
-      body += t.name + "\n";
-      body += "Inicio: " + toISODate(t.start) + "\n";
-      body += "Fin: " + toISODate(t.end) + "\n\n";
+      if(!t.start)return;
+      body+=t.name+" "+t.start+" - "+t.end+"\n";
     });
+    window.location.href="mailto:?subject=Plan&body="+encodeURIComponent(body);
+  }catch{alert("Generar primero")}
+};
 
-    const subject = encodeURIComponent("Plan - " + getProjectName());
-    window.location.href = "mailto:?subject="+subject+"&body="+encodeURIComponent(body);
-  }catch(e){
-    alert("Genera el plan primero");
-  }
-});
-
-// ====== PDF EXPORT (GANTT IMAGE) ======
-document.getElementById("btnPDF").addEventListener("click", ()=>{
-  const element = document.getElementById("gantt");
-  if(!element){
-    alert("Genera el Gantt primero");
-    return;
-  }
-
-  html2canvas(element).then(canvas=>{
-    const imgData = canvas.toDataURL("image/png");
-    const pdf = new jspdf.jsPDF("landscape");
-    pdf.text("Gantt - " + getProjectName(), 10, 10);
-    pdf.addImage(imgData, 'PNG', 10, 20, 270, 120);
-    pdf.save("gantt_"+getProjectName()+".pdf");
+// PDF
+document.getElementById("btnPDF").onclick=()=>{
+  html2canvas(document.getElementById("gantt")).then(canvas=>{
+    const pdf=new jspdf.jsPDF("landscape");
+    pdf.addImage(canvas.toDataURL(),"PNG",10,20,270,120);
+    pdf.save("gantt.pdf");
   });
-});
+};
 
-// ====== TITLE UPDATE ======
-document.getElementById("btnGenerate").addEventListener("click", ()=>{
-  const el = document.querySelector("h2");
-  if(el){
-    el.innerText = "3) Gantt (compacto) - " + getProjectName();
-  }
-});
+// BIND SAVE
+document.getElementById("btnSave").onclick=savePlan;
+
+// INIT
+setTimeout(renderPlanList,300);
 
 </script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf">
-// ====== PROJECT NAME ======
-function getProjectName(){
-  return document.getElementById("projectName")?.value || "Sin nombre";
+const STORAGE_KEY="gantt_planes_final";
+
+// SAVE
+function savePlan(){
+  const tasks = readAndComputeTasks();
+  const plans = JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");
+
+  plans.push({
+    id:Date.now(),
+    nombre:document.getElementById("projectName").value||"Sin nombre",
+    fecha:new Date().toLocaleString(),
+    data:getFormData()
+  });
+
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(plans));
+  renderPlanList();
+  alert("Guardado OK");
+  document.getElementById("projectName").value="";
 }
 
-// ====== MAIL REPORT ======
-document.getElementById("btnMail").addEventListener("click", ()=>{
+// HISTORY UI
+function renderPlanList(){
+  const el=document.getElementById("planList");
+  const plans=JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");
+
+  if(plans.length===0){el.innerHTML="Sin planes";return;}
+
+  el.innerHTML=plans.map(p=>`
+  <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+    <span><b>${p.nombre}</b> - ${p.fecha}</span>
+    <div>
+      <button onclick="loadPlan(${p.id})" title="Cargar">📂</button>
+      <button onclick="deletePlan(${p.id})" title="Eliminar">🗑️</button>
+    </div>
+  </div>`).join("");
+}
+
+function loadPlan(id){
+  const plans=JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");
+  const plan=plans.find(p=>p.id===id);
+  setFormData(plan.data);
+  setTimeout(()=>document.getElementById("btnGenerate").click(),200);
+}
+
+function deletePlan(id){
+  let plans=JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");
+  plans=plans.filter(p=>p.id!==id);
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(plans));
+  renderPlanList();
+}
+
+// MAIL
+document.getElementById("btnMail").onclick=()=>{
   try{
-    const tasks = readAndComputeTasks();
-    let body = "PLANIFICACIÓN\n\n";
-    body += "Proyecto: " + getProjectName() + "\n\n";
-
+    const tasks=readAndComputeTasks();
+    let body="Proyecto: "+(document.getElementById("projectName").value||"")+"\n\n";
     tasks.forEach(t=>{
-      if(!t.start) return;
-      body += t.name + "\n";
-      body += "Inicio: " + toISODate(t.start) + "\n";
-      body += "Fin: " + toISODate(t.end) + "\n\n";
+      if(!t.start)return;
+      body+=t.name+" "+t.start+" - "+t.end+"\n";
     });
+    window.location.href="mailto:?subject=Plan&body="+encodeURIComponent(body);
+  }catch{alert("Generar primero")}
+};
 
-    const subject = encodeURIComponent("Plan - " + getProjectName());
-    window.location.href = "mailto:?subject="+subject+"&body="+encodeURIComponent(body);
-  }catch(e){
-    alert("Genera el plan primero");
-  }
-});
-
-// ====== PDF EXPORT (GANTT IMAGE) ======
-document.getElementById("btnPDF").addEventListener("click", ()=>{
-  const element = document.getElementById("gantt");
-  if(!element){
-    alert("Genera el Gantt primero");
-    return;
-  }
-
-  html2canvas(element).then(canvas=>{
-    const imgData = canvas.toDataURL("image/png");
-    const pdf = new jspdf.jsPDF("landscape");
-    pdf.text("Gantt - " + getProjectName(), 10, 10);
-    pdf.addImage(imgData, 'PNG', 10, 20, 270, 120);
-    pdf.save("gantt_"+getProjectName()+".pdf");
+// PDF
+document.getElementById("btnPDF").onclick=()=>{
+  html2canvas(document.getElementById("gantt")).then(canvas=>{
+    const pdf=new jspdf.jsPDF("landscape");
+    pdf.addImage(canvas.toDataURL(),"PNG",10,20,270,120);
+    pdf.save("gantt.pdf");
   });
-});
+};
 
-// ====== TITLE UPDATE ======
-document.getElementById("btnGenerate").addEventListener("click", ()=>{
-  const el = document.querySelector("h2");
-  if(el){
-    el.innerText = "3) Gantt (compacto) - " + getProjectName();
-  }
-});
+// BIND SAVE
+document.getElementById("btnSave").onclick=savePlan;
+
+// INIT
+setTimeout(renderPlanList,300);
 
 </script>
-
 </head>
+
 
 <body>
   <div class="container">
@@ -362,16 +418,19 @@ document.getElementById("btnGenerate").addEventListener("click", ()=>{
           Capacidad por fase = <b>8h × Recursos</b> (L–V). Si cabe en el día, se mantiene la misma fecha.
         </p>
       </div>
-      <div style="margin-bottom:8px;"><input id="projectName" placeholder="Nombre del proyecto" style="padding:8px;border-radius:10px;border:1px solid #ccc;width:320px;"></div>
+      <div style="margin-bottom:8px;">
+<input id="projectName" placeholder="Nombre del proyecto" style="padding:8px;border-radius:10px;border:1px solid #ccc;width:350px;">
+</div>
 <div class="actions">
+<button class="btn" id="btnSave">💾 Guardar</button>
+<button class="btn" id="btnMail">📧 Mail</button>
+<button class="btn" id="btnPDF">📄 PDF</button>
         <span class="pill">🗓️ L–V</span>
         <span class="pill">⏱️ 8h/día</span>
         <span class="pill">👥 Recursos</span>
         <button class="btn ghost" id="btnDemo" type="button">✨ Ejemplo</button>
         <button class="btn" id="btnClear" type="button">🧹 Limpiar</button>
         <button class="btn primary" id="btnGenerate" type="button">🚀 Generar</button>
-        <button class="btn" id="btnMail" type="button">📧 Mail</button>
-        <button class="btn" id="btnPDF" type="button">📄 PDF</button>
       </div>
     </header>
 
@@ -469,113 +528,176 @@ document.getElementById("btnGenerate").addEventListener("click", ()=>{
           <div class="gantt" id="gantt"></div>
         </div>
       </div>
-    </section>
-  </div>
+    
+</section>
+
+<section class="card">
+<div class="card-head"><h2>📚 Historial de Planes</h2></div>
+<div class="card-body"><div id="planList"></div></div>
+</section>
+
+</div>
 
   <script src="https://cdn.jsdelivr.net/npm/flatpickr">
-// ====== PROJECT NAME ======
-function getProjectName(){
-  return document.getElementById("projectName")?.value || "Sin nombre";
+const STORAGE_KEY="gantt_planes_final";
+
+// SAVE
+function savePlan(){
+  const tasks = readAndComputeTasks();
+  const plans = JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");
+
+  plans.push({
+    id:Date.now(),
+    nombre:document.getElementById("projectName").value||"Sin nombre",
+    fecha:new Date().toLocaleString(),
+    data:getFormData()
+  });
+
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(plans));
+  renderPlanList();
+  alert("Guardado OK");
+  document.getElementById("projectName").value="";
 }
 
-// ====== MAIL REPORT ======
-document.getElementById("btnMail").addEventListener("click", ()=>{
+// HISTORY UI
+function renderPlanList(){
+  const el=document.getElementById("planList");
+  const plans=JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");
+
+  if(plans.length===0){el.innerHTML="Sin planes";return;}
+
+  el.innerHTML=plans.map(p=>`
+  <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+    <span><b>${p.nombre}</b> - ${p.fecha}</span>
+    <div>
+      <button onclick="loadPlan(${p.id})" title="Cargar">📂</button>
+      <button onclick="deletePlan(${p.id})" title="Eliminar">🗑️</button>
+    </div>
+  </div>`).join("");
+}
+
+function loadPlan(id){
+  const plans=JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");
+  const plan=plans.find(p=>p.id===id);
+  setFormData(plan.data);
+  setTimeout(()=>document.getElementById("btnGenerate").click(),200);
+}
+
+function deletePlan(id){
+  let plans=JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");
+  plans=plans.filter(p=>p.id!==id);
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(plans));
+  renderPlanList();
+}
+
+// MAIL
+document.getElementById("btnMail").onclick=()=>{
   try{
-    const tasks = readAndComputeTasks();
-    let body = "PLANIFICACIÓN\n\n";
-    body += "Proyecto: " + getProjectName() + "\n\n";
-
+    const tasks=readAndComputeTasks();
+    let body="Proyecto: "+(document.getElementById("projectName").value||"")+"\n\n";
     tasks.forEach(t=>{
-      if(!t.start) return;
-      body += t.name + "\n";
-      body += "Inicio: " + toISODate(t.start) + "\n";
-      body += "Fin: " + toISODate(t.end) + "\n\n";
+      if(!t.start)return;
+      body+=t.name+" "+t.start+" - "+t.end+"\n";
     });
+    window.location.href="mailto:?subject=Plan&body="+encodeURIComponent(body);
+  }catch{alert("Generar primero")}
+};
 
-    const subject = encodeURIComponent("Plan - " + getProjectName());
-    window.location.href = "mailto:?subject="+subject+"&body="+encodeURIComponent(body);
-  }catch(e){
-    alert("Genera el plan primero");
-  }
-});
-
-// ====== PDF EXPORT (GANTT IMAGE) ======
-document.getElementById("btnPDF").addEventListener("click", ()=>{
-  const element = document.getElementById("gantt");
-  if(!element){
-    alert("Genera el Gantt primero");
-    return;
-  }
-
-  html2canvas(element).then(canvas=>{
-    const imgData = canvas.toDataURL("image/png");
-    const pdf = new jspdf.jsPDF("landscape");
-    pdf.text("Gantt - " + getProjectName(), 10, 10);
-    pdf.addImage(imgData, 'PNG', 10, 20, 270, 120);
-    pdf.save("gantt_"+getProjectName()+".pdf");
+// PDF
+document.getElementById("btnPDF").onclick=()=>{
+  html2canvas(document.getElementById("gantt")).then(canvas=>{
+    const pdf=new jspdf.jsPDF("landscape");
+    pdf.addImage(canvas.toDataURL(),"PNG",10,20,270,120);
+    pdf.save("gantt.pdf");
   });
-});
+};
 
-// ====== TITLE UPDATE ======
-document.getElementById("btnGenerate").addEventListener("click", ()=>{
-  const el = document.querySelector("h2");
-  if(el){
-    el.innerText = "3) Gantt (compacto) - " + getProjectName();
-  }
-});
+// BIND SAVE
+document.getElementById("btnSave").onclick=savePlan;
+
+// INIT
+setTimeout(renderPlanList,300);
 
 </script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js">
-// ====== PROJECT NAME ======
-function getProjectName(){
-  return document.getElementById("projectName")?.value || "Sin nombre";
+const STORAGE_KEY="gantt_planes_final";
+
+// SAVE
+function savePlan(){
+  const tasks = readAndComputeTasks();
+  const plans = JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");
+
+  plans.push({
+    id:Date.now(),
+    nombre:document.getElementById("projectName").value||"Sin nombre",
+    fecha:new Date().toLocaleString(),
+    data:getFormData()
+  });
+
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(plans));
+  renderPlanList();
+  alert("Guardado OK");
+  document.getElementById("projectName").value="";
 }
 
-// ====== MAIL REPORT ======
-document.getElementById("btnMail").addEventListener("click", ()=>{
+// HISTORY UI
+function renderPlanList(){
+  const el=document.getElementById("planList");
+  const plans=JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");
+
+  if(plans.length===0){el.innerHTML="Sin planes";return;}
+
+  el.innerHTML=plans.map(p=>`
+  <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+    <span><b>${p.nombre}</b> - ${p.fecha}</span>
+    <div>
+      <button onclick="loadPlan(${p.id})" title="Cargar">📂</button>
+      <button onclick="deletePlan(${p.id})" title="Eliminar">🗑️</button>
+    </div>
+  </div>`).join("");
+}
+
+function loadPlan(id){
+  const plans=JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");
+  const plan=plans.find(p=>p.id===id);
+  setFormData(plan.data);
+  setTimeout(()=>document.getElementById("btnGenerate").click(),200);
+}
+
+function deletePlan(id){
+  let plans=JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");
+  plans=plans.filter(p=>p.id!==id);
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(plans));
+  renderPlanList();
+}
+
+// MAIL
+document.getElementById("btnMail").onclick=()=>{
   try{
-    const tasks = readAndComputeTasks();
-    let body = "PLANIFICACIÓN\n\n";
-    body += "Proyecto: " + getProjectName() + "\n\n";
-
+    const tasks=readAndComputeTasks();
+    let body="Proyecto: "+(document.getElementById("projectName").value||"")+"\n\n";
     tasks.forEach(t=>{
-      if(!t.start) return;
-      body += t.name + "\n";
-      body += "Inicio: " + toISODate(t.start) + "\n";
-      body += "Fin: " + toISODate(t.end) + "\n\n";
+      if(!t.start)return;
+      body+=t.name+" "+t.start+" - "+t.end+"\n";
     });
+    window.location.href="mailto:?subject=Plan&body="+encodeURIComponent(body);
+  }catch{alert("Generar primero")}
+};
 
-    const subject = encodeURIComponent("Plan - " + getProjectName());
-    window.location.href = "mailto:?subject="+subject+"&body="+encodeURIComponent(body);
-  }catch(e){
-    alert("Genera el plan primero");
-  }
-});
-
-// ====== PDF EXPORT (GANTT IMAGE) ======
-document.getElementById("btnPDF").addEventListener("click", ()=>{
-  const element = document.getElementById("gantt");
-  if(!element){
-    alert("Genera el Gantt primero");
-    return;
-  }
-
-  html2canvas(element).then(canvas=>{
-    const imgData = canvas.toDataURL("image/png");
-    const pdf = new jspdf.jsPDF("landscape");
-    pdf.text("Gantt - " + getProjectName(), 10, 10);
-    pdf.addImage(imgData, 'PNG', 10, 20, 270, 120);
-    pdf.save("gantt_"+getProjectName()+".pdf");
+// PDF
+document.getElementById("btnPDF").onclick=()=>{
+  html2canvas(document.getElementById("gantt")).then(canvas=>{
+    const pdf=new jspdf.jsPDF("landscape");
+    pdf.addImage(canvas.toDataURL(),"PNG",10,20,270,120);
+    pdf.save("gantt.pdf");
   });
-});
+};
 
-// ====== TITLE UPDATE ======
-document.getElementById("btnGenerate").addEventListener("click", ()=>{
-  const el = document.querySelector("h2");
-  if(el){
-    el.innerText = "3) Gantt (compacto) - " + getProjectName();
-  }
-});
+// BIND SAVE
+document.getElementById("btnSave").onclick=savePlan;
+
+// INIT
+setTimeout(renderPlanList,300);
 
 </script>
 
@@ -1003,56 +1125,84 @@ document.getElementById("btnGenerate").addEventListener("click", ()=>{
 
     renderInputs();
   
-// ====== PROJECT NAME ======
-function getProjectName(){
-  return document.getElementById("projectName")?.value || "Sin nombre";
+const STORAGE_KEY="gantt_planes_final";
+
+// SAVE
+function savePlan(){
+  const tasks = readAndComputeTasks();
+  const plans = JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");
+
+  plans.push({
+    id:Date.now(),
+    nombre:document.getElementById("projectName").value||"Sin nombre",
+    fecha:new Date().toLocaleString(),
+    data:getFormData()
+  });
+
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(plans));
+  renderPlanList();
+  alert("Guardado OK");
+  document.getElementById("projectName").value="";
 }
 
-// ====== MAIL REPORT ======
-document.getElementById("btnMail").addEventListener("click", ()=>{
+// HISTORY UI
+function renderPlanList(){
+  const el=document.getElementById("planList");
+  const plans=JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");
+
+  if(plans.length===0){el.innerHTML="Sin planes";return;}
+
+  el.innerHTML=plans.map(p=>`
+  <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+    <span><b>${p.nombre}</b> - ${p.fecha}</span>
+    <div>
+      <button onclick="loadPlan(${p.id})" title="Cargar">📂</button>
+      <button onclick="deletePlan(${p.id})" title="Eliminar">🗑️</button>
+    </div>
+  </div>`).join("");
+}
+
+function loadPlan(id){
+  const plans=JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");
+  const plan=plans.find(p=>p.id===id);
+  setFormData(plan.data);
+  setTimeout(()=>document.getElementById("btnGenerate").click(),200);
+}
+
+function deletePlan(id){
+  let plans=JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");
+  plans=plans.filter(p=>p.id!==id);
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(plans));
+  renderPlanList();
+}
+
+// MAIL
+document.getElementById("btnMail").onclick=()=>{
   try{
-    const tasks = readAndComputeTasks();
-    let body = "PLANIFICACIÓN\n\n";
-    body += "Proyecto: " + getProjectName() + "\n\n";
-
+    const tasks=readAndComputeTasks();
+    let body="Proyecto: "+(document.getElementById("projectName").value||"")+"\n\n";
     tasks.forEach(t=>{
-      if(!t.start) return;
-      body += t.name + "\n";
-      body += "Inicio: " + toISODate(t.start) + "\n";
-      body += "Fin: " + toISODate(t.end) + "\n\n";
+      if(!t.start)return;
+      body+=t.name+" "+t.start+" - "+t.end+"\n";
     });
+    window.location.href="mailto:?subject=Plan&body="+encodeURIComponent(body);
+  }catch{alert("Generar primero")}
+};
 
-    const subject = encodeURIComponent("Plan - " + getProjectName());
-    window.location.href = "mailto:?subject="+subject+"&body="+encodeURIComponent(body);
-  }catch(e){
-    alert("Genera el plan primero");
-  }
-});
-
-// ====== PDF EXPORT (GANTT IMAGE) ======
-document.getElementById("btnPDF").addEventListener("click", ()=>{
-  const element = document.getElementById("gantt");
-  if(!element){
-    alert("Genera el Gantt primero");
-    return;
-  }
-
-  html2canvas(element).then(canvas=>{
-    const imgData = canvas.toDataURL("image/png");
-    const pdf = new jspdf.jsPDF("landscape");
-    pdf.text("Gantt - " + getProjectName(), 10, 10);
-    pdf.addImage(imgData, 'PNG', 10, 20, 270, 120);
-    pdf.save("gantt_"+getProjectName()+".pdf");
+// PDF
+document.getElementById("btnPDF").onclick=()=>{
+  html2canvas(document.getElementById("gantt")).then(canvas=>{
+    const pdf=new jspdf.jsPDF("landscape");
+    pdf.addImage(canvas.toDataURL(),"PNG",10,20,270,120);
+    pdf.save("gantt.pdf");
   });
-});
+};
 
-// ====== TITLE UPDATE ======
-document.getElementById("btnGenerate").addEventListener("click", ()=>{
-  const el = document.querySelector("h2");
-  if(el){
-    el.innerText = "3) Gantt (compacto) - " + getProjectName();
-  }
-});
+// BIND SAVE
+document.getElementById("btnSave").onclick=savePlan;
+
+// INIT
+setTimeout(renderPlanList,300);
 
 </script>
 </body>
