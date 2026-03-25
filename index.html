@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gantt - Software</title>
+</head>
+
+<body>
+  <h1>Planificador Gantt</h1>
+
+  <button id="btnSave">💾 Guardar</button>
+  <button id="btnLoad">📂 Cargar</button>
+  <button id="btnGenerate">🚀 Generar</button>
+
+  <script>
+    const TASKS = [
+      { id: "t1" },
+      { id: "t2" },
+      { id: "t3" },
+      { id: "t4" },
+      { id: "t5" },
+    ];
+
+    const STORAGE_KEY = "gantt_plan_v1";
+
+    function getFormData(){
+      const data = {};
+      TASKS.forEach(t => {
+        data[t.id] = {
+          hours: "",
+          res: "",
+          start: "",
+          end: ""
+        };
+      });
+      return data;
+    }
+
+    function setFormData(data){
+      console.log("Loaded:", data);
+    }
+
+    function savePlan(){
+      const data = getFormData();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    function loadPlan(){
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return null;
+      try { return JSON.parse(raw); } catch { return null; }
+    }
+
+    function notify(msg){
+      if (!("Notification" in window)) return;
+
+      if (Notification.permission === "granted") {
+        new Notification(msg);
+      } else if (Notification.permission !== "denied") {
+        Notification.requestPermission().then(permission => {
+          if (permission === "granted") {
+            new Notification(msg);
+          }
+        });
+      }
+    }
+
+    document.getElementById("btnSave").addEventListener("click", () => {
+      savePlan();
+      notify("Plan guardado");
+    });
+
+    document.getElementById("btnLoad").addEventListener("click", () => {
+      const data = loadPlan();
+      if(!data){
+        alert("No hay plan guardado");
+        return;
+      }
+      setFormData(data);
+      notify("Plan cargado");
+    });
+
+    document.getElementById("btnGenerate").addEventListener("click", () => {
+      savePlan();
+      notify("Plan generado y guardado");
+    });
+
+    window.addEventListener("load", () => {
+      const data = loadPlan();
+      if(data){
+        setFormData(data);
+      }
+    });
+  </script>
+</body>
+</html>
