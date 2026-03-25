@@ -33,7 +33,7 @@ body{
   backdrop-filter:blur(12px);
 }
 h1{margin:0 0 10px;font-size:22px}
-input,button{
+input{
   border-radius:10px;
   padding:6px 8px;
   border:1px solid rgba(255,255,255,.12);
@@ -41,33 +41,18 @@ input,button{
   color:#fff;
   font-size:12px;
 }
-
-input.small{
-  width:70px;
-  text-align:center;
-}
-
-input.medium{
-  width:120px;
-}
-
-input.project{
-  width:320px;
-  font-size:14px;
+input.small{width:70px;text-align:center;}
+input.medium{width:120px;}
+input.project{width:320px;font-size:14px;padding:8px 10px;}
+button{
+  background:var(--primary);
+  border:none;
   padding:8px 10px;
-}
-
-button{
-  background:var(--primary);
+  border-radius:10px;
+  color:#fff;
   cursor:pointer;
   font-weight:600;
 }
-button{
-  background:var(--primary);
-  cursor:pointer;
-  font-weight:600;
-}
-button:hover{opacity:.9}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 table{width:100%;border-collapse:collapse}
 th,td{padding:6px;border-bottom:1px solid rgba(255,255,255,.1)}
@@ -76,11 +61,7 @@ th,td{padding:6px;border-bottom:1px solid rgba(255,255,255,.1)}
   border-radius:999px;
   background:linear-gradient(90deg,#7c5cff,#00e0a4);
   margin:6px 0;
-  transition:.2s;
 }
-.bar:hover{transform:scale(1.03)}
-.kpi{display:flex;flex-direction:column}
-.kpi strong{font-size:18px}
 </style>
 </head>
 <body>
@@ -92,10 +73,6 @@ th,td{padding:6px;border-bottom:1px solid rgba(255,255,255,.1)}
 <input id="projectName" class="project" placeholder="Nombre del proyecto">
 <input id="hoursPerDay" class="small" type="number" value="8" min="1">
 <button onclick="generate()">Generar</button>
-<button onclick="saveJSON()">💾</button>
-<button onclick="loadJSON()">📂</button>
-<button onclick="exportEmail()">📧</button>
-<input type="file" id="fileInput" hidden>
 </div>
 
 <div class="grid">
@@ -111,8 +88,8 @@ th,td{padding:6px;border-bottom:1px solid rgba(255,255,255,.1)}
 
 <div class="card">
 <h3>Resumen</h3>
-<div class="kpi">Total horas <strong id="totalHours">-</strong></div>
-<div class="kpi">Duración <strong id="totalDays">-</strong></div>
+<div>Total horas: <strong id="totalHours">-</strong></div>
+<div>Duración: <strong id="totalDays">-</strong></div>
 <canvas id="chart"></canvas>
 </div>
 </div>
@@ -142,7 +119,7 @@ TASKS.forEach(t=>{
  <td><input class="small" id="${t.id}_h"></td>
  <td><input class="small" id="${t.id}_r" value="1"></td>
  <td><input class="medium" id="${t.id}_s"></td>
- <td><input id="${t.id}_e" readonly></td>`;
+ <td><input class="medium" id="${t.id}_e" readonly></td>`;
  tbody.appendChild(tr);
 });
 flatpickr("#t1_s",{dateFormat:"Y-m-d"});
@@ -151,11 +128,8 @@ flatpickr("#t1_s",{dateFormat:"Y-m-d"});
 function generate(){
 let current=new Date(document.getElementById("t1_s").value);
 let hpd=Number(document.getElementById("hoursPerDay").value);
-let totalH=0;
-let totalD=0;
-let cumulative=[];
-let sum=0;
-let ganttHTML="";
+let totalH=0,totalD=0;
+let cumulative=[],sum=0,ganttHTML="";
 
 TASKS.forEach(t=>{
  let h=Number(document.getElementById(`${t.id}_h`).value||0);
@@ -179,50 +153,14 @@ TASKS.forEach(t=>{
  current=end;
 });
 
- document.getElementById("gantt").innerHTML=`<h4>${projectName.value}</h4>`+ganttHTML;
- document.getElementById("totalHours").innerText=totalH+"h";
- document.getElementById("totalDays").innerText=totalD+"d";
+document.getElementById("gantt").innerHTML=`<h4>${projectName.value}</h4>`+ganttHTML;
+document.getElementById("totalHours").innerText=totalH+"h";
+document.getElementById("totalDays").innerText=totalD+"d";
 
- new Chart(document.getElementById("chart"),{
+new Chart(document.getElementById("chart"),{
  type:"line",
  data:{labels:TASKS.map(t=>t.name),datasets:[{label:"Esfuerzo acumulado",data:cumulative,fill:true}]}
- });
-}
-
-function saveJSON(){
-const data={name:projectName.value,hpd:hoursPerDay.value,tasks:TASKS.map(t=>({h:document.getElementById(`${t.id}_h`).value,r:document.getElementById(`${t.id}_r`).value}))};
-const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
-const a=document.createElement("a");
-a.href=URL.createObjectURL(blob);
-a.download="plan.json";
-a.click();
-}
-
-function loadJSON(){
-document.getElementById("fileInput").click();
-document.getElementById("fileInput").onchange=e=>{
-const reader=new FileReader();
-reader.onload=()=>{
-const data=JSON.parse(reader.result);
-projectName.value=data.name;
-hoursPerDay.value=data.hpd;
-data.tasks.forEach((t,i)=>{
-document.getElementById(`${TASKS[i].id}_h`).value=t.h;
-document.getElementById(`${TASKS[i].id}_r`).value=t.r;
 });
-};
-reader.readAsText(e.target.files[0]);
-};
-}
-
-function exportEmail(){
-let html=`<h2>${projectName.value}</h2><table border='1'><tr><th>Fase</th><th>Días</th></tr>`;
-TASKS.forEach(t=>{
-html+=`<tr><td>${t.name}</td><td>${document.getElementById(`${t.id}_e`).value}</td></tr>`;
-});
-html+="</table>";
-navigator.clipboard.writeText(html);
-alert("Copiado para email ✔");
 }
 
 init();
